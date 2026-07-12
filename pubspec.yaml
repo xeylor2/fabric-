@@ -18,6 +18,7 @@ workspace:
   - packages/core_plugin
   - packages/core_performance
   - packages/core_tooling
+  - packages/core_canvas
   - packages/core_document
   - packages/core_garment
   - packages/core_color
