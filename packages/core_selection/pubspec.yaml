@@ -1,0 +1,21 @@
+name: core_selection
+description: "FEBRIC Selection Engine: frozen region-selection architecture (shapes, refinements, snapshots, history)."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  core_geometry:
+    path: ../core_geometry
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.9.0
+  meta: ^1.16.0
+
+dev_dependencies:
+  build_runner: ^2.15.0
+  freezed: ^3.2.3
+  json_serializable: ^6.11.1
+  test: ^1.25.0

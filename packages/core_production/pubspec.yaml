@@ -1,0 +1,24 @@
+name: core_production
+description: "FEBRIC Production engine: preflight rules, production rendering, encoders, packaging."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_common:
+    path: ../core_common
+  core_document:
+    path: ../core_document
+  core_color:
+    path: ../core_color
+  core_rendering:
+    path: ../core_rendering
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

@@ -1,0 +1,26 @@
+name: feature_inspector
+description: "FEBRIC Textile Inspector: artwork analysis, staged tree population, refinement."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_common:
+    path: ../core_common
+  core_ai:
+    path: ../core_ai
+  core_imaging:
+    path: ../core_imaging
+  core_document:
+    path: ../core_document
+  core_design_system:
+    path: ../core_design_system
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

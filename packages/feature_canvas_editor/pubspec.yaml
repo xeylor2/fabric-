@@ -1,0 +1,26 @@
+name: feature_canvas_editor
+description: "FEBRIC Canvas editor: workspace tools, selection, transforms."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_common:
+    path: ../core_common
+  core_document:
+    path: ../core_document
+  core_rendering:
+    path: ../core_rendering
+  core_imaging:
+    path: ../core_imaging
+  core_design_system:
+    path: ../core_design_system
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

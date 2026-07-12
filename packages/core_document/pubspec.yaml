@@ -1,0 +1,37 @@
+name: core_document
+description: "FEBRIC Document Engine: the command-driven runtime source of truth (document model, command bus, history, codec, repository)."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  core_ai:
+    path: ../core_ai
+  core_common:
+    path: ../core_common
+  core_geometry:
+    path: ../core_geometry
+  core_interaction:
+    path: ../core_interaction
+  core_layer:
+    path: ../core_layer
+  core_lock:
+    path: ../core_lock
+  core_mask:
+    path: ../core_mask
+  core_selection:
+    path: ../core_selection
+  core_textile:
+    path: ../core_textile
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.9.0
+  meta: ^1.16.0
+
+dev_dependencies:
+  build_runner: ^2.15.0
+  freezed: ^3.2.3
+  json_serializable: ^6.11.1
+  test: ^1.25.0

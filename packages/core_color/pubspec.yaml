@@ -1,0 +1,15 @@
+name: core_color
+description: "FEBRIC Color engine: palettes, colorways, ICC/CMYK transforms, gamut and delta-E analysis."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  core_common:
+    path: ../core_common
+
+dev_dependencies:
+  test: ^1.25.0

@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+  "appTitle": "FEBRIC",
+  "@appTitle": {
+    "description": "Application title shown in the OS task switcher and window."
+  },
+  "appTagline": "Professional AI Textile Design Operating System",
+  "@appTagline": {
+    "description": "Brand tagline."
+  }
+}

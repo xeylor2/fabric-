@@ -1,0 +1,108 @@
+name: febric
+description: "FEBRIC — Professional AI Textile Design Operating System."
+publish_to: 'none'
+version: 0.1.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management / DI / routing
+  flutter_riverpod: ^3.3.2
+  go_router: ^17.3.0
+  intl: ^0.20.2
+  riverpod_annotation: ^4.0.3
+
+  # FEBRIC core engines (Architecture V2, section 14)
+  core_ai:
+    path: ../packages/core_ai
+  core_assets:
+    path: ../packages/core_assets
+  core_color:
+    path: ../packages/core_color
+  core_common:
+    path: ../packages/core_common
+  core_design_system:
+    path: ../packages/core_design_system
+  core_document:
+    path: ../packages/core_document
+  core_garment:
+    path: ../packages/core_garment
+  core_imaging:
+    path: ../packages/core_imaging
+  core_production:
+    path: ../packages/core_production
+  core_interaction:
+    path: ../packages/core_interaction
+  core_geometry:
+    path: ../packages/core_geometry
+  core_layer:
+    path: ../packages/core_layer
+  core_lock:
+    path: ../packages/core_lock
+  core_mask:
+    path: ../packages/core_mask
+  core_performance:
+    path: ../packages/core_performance
+  core_plugin:
+    path: ../packages/core_plugin
+  core_selection:
+    path: ../packages/core_selection
+  core_tooling:
+    path: ../packages/core_tooling
+  core_rendering:
+    path: ../packages/core_rendering
+  core_textile:
+    path: ../packages/core_textile
+  core_workspace:
+    path: ../packages/core_workspace
+
+  # FEBRIC features (composition root wires every feature)
+  feature_ai_assist:
+    path: ../packages/feature_ai_assist
+  feature_canvas_editor:
+    path: ../packages/feature_canvas_editor
+  feature_color:
+    path: ../packages/feature_color
+  feature_conversation:
+    path: ../packages/feature_conversation
+  feature_dashboard:
+    path: ../packages/feature_dashboard
+  feature_design_tree:
+    path: ../packages/feature_design_tree
+  feature_garment_library:
+    path: ../packages/feature_garment_library
+  feature_inspector:
+    path: ../packages/feature_inspector
+  feature_library:
+    path: ../packages/feature_library
+  feature_production:
+    path: ../packages/feature_production
+  feature_projects:
+    path: ../packages/feature_projects
+  feature_repeat:
+    path: ../packages/feature_repeat
+  feature_review:
+    path: ../packages/feature_review
+  feature_settings:
+    path: ../packages/feature_settings
+  shared_preferences: ^2.5.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.15.0
+  riverpod_generator: ^4.0.4
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - assets/images/
+    - assets/icons/

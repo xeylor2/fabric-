@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # Nested domain models must serialize to plain JSON maps, not
+          # model instances — required for lossless round-trips into the
+          # `.febric` project package.
+          explicit_to_json: true

@@ -1,0 +1,20 @@
+name: core_rendering
+description: "FEBRIC Rendering engine: Design Tree render-graph compiler, tiled canvas, hit testing, previews."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_common:
+    path: ../core_common
+  core_document:
+    path: ../core_document
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

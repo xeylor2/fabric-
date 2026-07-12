@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    name: Format, analyze, dependency lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Runs before pub get so gitignored generated sources are absent.
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed app/lib app/test packages tooling
+
+      - name: Resolve workspace
+        run: flutter pub get
+        working-directory: app
+
+      - name: Architecture dependency lint
+        run: dart tooling/dependency_lint.dart
+
+      - name: Analyze
+        run: dart analyze --fatal-infos .
+
+      - name: Test all packages
+        run: bash tooling/test_all.sh
+
+  build-windows:
+    name: Windows debug build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve workspace
+        run: flutter pub get
+        working-directory: app
+
+      - name: Build (Windows, debug)
+        run: flutter build windows --debug
+        working-directory: app

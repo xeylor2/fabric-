@@ -1,0 +1,18 @@
+name: core_imaging
+description: "FEBRIC Imaging engine: raster operations, masks, compositing, isolate execution, FFI seam."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_common:
+    path: ../core_common
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

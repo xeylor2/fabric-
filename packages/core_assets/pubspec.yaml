@@ -1,0 +1,17 @@
+name: core_assets
+description: "FEBRIC Asset Intelligence engine: asset model, embedding index client, recommendation services."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  core_common:
+    path: ../core_common
+  core_ai:
+    path: ../core_ai
+
+dev_dependencies:
+  test: ^1.25.0

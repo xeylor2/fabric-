@@ -1,0 +1,24 @@
+name: feature_color
+description: "FEBRIC Color feature: palettes, element-aware recolor, colorway manager."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_common:
+    path: ../core_common
+  core_color:
+    path: ../core_color
+  core_document:
+    path: ../core_document
+  core_design_system:
+    path: ../core_design_system
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

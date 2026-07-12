@@ -1,0 +1,45 @@
+name: febric_workspace
+description: FEBRIC monorepo workspace root (Architecture V2).
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+
+workspace:
+  - app
+  - packages/core_common
+  - packages/core_textile
+  - packages/core_interaction
+  - packages/core_geometry
+  - packages/core_lock
+  - packages/core_layer
+  - packages/core_mask
+  - packages/core_selection
+  - packages/core_plugin
+  - packages/core_performance
+  - packages/core_tooling
+  - packages/core_document
+  - packages/core_garment
+  - packages/core_color
+  - packages/core_ai
+  - packages/core_asset
+  - packages/core_assets
+  - packages/core_imaging
+  - packages/core_rendering
+  - packages/core_design_system
+  - packages/core_workspace
+  - packages/core_production
+  - packages/feature_dashboard
+  - packages/feature_design_tree
+  - packages/feature_garment_library
+  - packages/feature_canvas_editor
+  - packages/feature_inspector
+  - packages/feature_conversation
+  - packages/feature_ai_assist
+  - packages/feature_repeat
+  - packages/feature_color
+  - packages/feature_library
+  - packages/feature_projects
+  - packages/feature_production
+  - packages/feature_review
+  - packages/feature_settings

@@ -1,0 +1,26 @@
+name: feature_production
+description: "FEBRIC Production surface: preflight UI, exports, factory preview."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_common:
+    path: ../core_common
+  core_production:
+    path: ../core_production
+  core_color:
+    path: ../core_color
+  core_rendering:
+    path: ../core_rendering
+  core_design_system:
+    path: ../core_design_system
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
