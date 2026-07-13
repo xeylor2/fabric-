@@ -22,6 +22,8 @@ dependencies:
     path: ../core_layer
   core_performance:
     path: ../core_performance
+  core_textile:
+    path: ../core_textile
   core_tooling:
     path: ../core_tooling
   freezed_annotation: ^3.1.0
