@@ -26,6 +26,13 @@ export 'src/objects/render_object.dart';
 export 'src/observability/render_metrics.dart';
 export 'src/pass/render_pass.dart';
 export 'src/queue/render_work_item.dart';
+// M5B-3 backend-independent command recording runtime (pure Dart).
+export 'src/recording/backend_capability_runtime.dart';
+export 'src/recording/command_buffer.dart';
+export 'src/recording/command_recording_runtime.dart';
+export 'src/recording/recording_render_backend.dart';
+export 'src/recording/render_command.dart';
+export 'src/recording/render_command_encoder.dart';
 export 'src/repository/render_cache_repository.dart';
 export 'src/resource/resource.dart';
 // M5B-2 headless runtime services (pure Dart; implement the M5B-1 contracts).
