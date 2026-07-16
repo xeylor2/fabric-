@@ -25,6 +25,16 @@ export 'src/graph/render_graph.dart';
 export 'src/objects/render_object.dart';
 export 'src/observability/render_metrics.dart';
 export 'src/pass/render_pass.dart';
+// M5B-4 platform rendering runtime — executes the recorded stream (pure Dart;
+// platform behaviour lives only in backend adapters; the real Flutter/GPU
+// driver arrives in the presentation-layer milestone).
+export 'src/platform/platform_capability_detector.dart';
+export 'src/platform/platform_rendering_runtime.dart';
+export 'src/platform/reference_backend_adapter.dart';
+export 'src/platform/render_command_executor.dart';
+export 'src/platform/render_platform.dart';
+export 'src/platform/render_surface_runtime.dart';
+export 'src/platform/rendered_frame.dart';
 export 'src/queue/render_work_item.dart';
 // M5B-3 backend-independent command recording runtime (pure Dart).
 export 'src/recording/backend_capability_runtime.dart';

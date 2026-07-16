@@ -146,6 +146,29 @@ void main() {
       ]);
     });
 
+    test('RenderPlatform (3 — M5B-4 platform targets)', () {
+      expect(RenderPlatform.values.map((v) => v.wireName), [
+        'android',
+        'ios',
+        'windows',
+      ]);
+    });
+
+    test('RenderCommandKind (10 — M5B-3 recorded commands)', () {
+      expect(RenderCommandKind.values.map((v) => v.wireName), [
+        'begin_frame',
+        'begin_render_target',
+        'begin_pass',
+        'set_render_state',
+        'bind_resource',
+        'draw',
+        'end_pass',
+        'end_render_target',
+        'composite',
+        'end_frame',
+      ]);
+    });
+
     test('RenderMetricKind wire names', () {
       expect(RenderMetricKind.values.map((v) => v.wireName), [
         'frame_time',
