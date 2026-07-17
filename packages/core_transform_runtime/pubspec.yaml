@@ -1,0 +1,16 @@
+name: core_transform_runtime
+description: "FEBRIC Transform Runtime (Scope A): the stateful wiring that holds the active Transform2D for the runtime chain. Accepts already-created Transform2D values, exposes the active transform to downstream runtimes (toward UniversalCanvasContract.activeTransform), and resets to identity. Introduces zero new transform mathematics or behavior — pure composition of the frozen Transform2D; no gesture-to-transform mapping and no transform composition."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  core_geometry:
+    path: ../core_geometry
+  meta: ^1.16.0
+
+dev_dependencies:
+  test: ^1.25.0

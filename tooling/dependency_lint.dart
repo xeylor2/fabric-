@@ -29,6 +29,7 @@ const Set<String> pureDartCorePackages = {
   'core_canvas',
   'core_canvas_runtime',
   'core_selection_runtime',
+  'core_transform_runtime',
   'core_render',
   'core_document',
   'core_garment',
