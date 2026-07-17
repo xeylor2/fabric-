@@ -1,0 +1,18 @@
+name: core_selection_runtime
+description: "FEBRIC Selection Runtime: the stateful wiring that connects the frozen M6 Interaction Runtime hit results to the frozen selection engine. Holds the live SelectionState, consumes InteractionSession hit results, and applies the existing frozen SelectionState / SelectionMode operations. Introduces zero new selection models, vocabularies or semantics — pure composition of frozen contracts."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  core_canvas:
+    path: ../core_canvas
+  core_interaction:
+    path: ../core_interaction
+  meta: ^1.16.0
+
+dev_dependencies:
+  test: ^1.25.0
