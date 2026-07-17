@@ -22,6 +22,7 @@ workspace:
   - packages/core_canvas_runtime
   - packages/core_selection_runtime
   - packages/core_transform_runtime
+  - packages/core_layer_runtime
   - packages/core_render
   - packages/core_document
   - packages/core_garment
