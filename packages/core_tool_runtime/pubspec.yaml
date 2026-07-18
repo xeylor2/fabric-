@@ -1,0 +1,27 @@
+name: core_tool_runtime
+description: "FEBRIC Tool Runtime (M11): the runtime orchestration shell that hosts and drives frozen UniversalToolContract instances (core_tooling, ADR-0012). It owns tool registration, the single active-tool reference and the lifecycle/request routing (initialize/activate/deactivate/dispose; preview/execute/cancel/undo/redo), assembles the frozen ToolContext from state supplied by the caller, and exposes the active tool's state verbatim. It never owns a command sink (a concrete-tool construction concern per the resolved command-bus ownership), never redefines a contract, and introduces zero new tool behaviour — pure orchestration of frozen contracts."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  core_document:
+    path: ../core_document
+  core_interaction:
+    path: ../core_interaction
+  core_lock:
+    path: ../core_lock
+  core_selection:
+    path: ../core_selection
+  core_tooling:
+    path: ../core_tooling
+
+dev_dependencies:
+  core_layer:
+    path: ../core_layer
+  core_textile:
+    path: ../core_textile
+  test: ^1.25.0

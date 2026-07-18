@@ -1,5 +1,5 @@
 name: core_runtime
-description: "FEBRIC Runtime Composition Layer (M10): CompositeCanvasRuntime implements the frozen CanvasRuntimeContract (ADR-0018) by owning and delegating to the existing interaction (M6), selection (M7), transform (M8) and layer (M9) runtimes. It fills the M6 selection routing stub (hit -> SelectionRuntime) and exposes caller-initiated transform/layer pass-throughs. Pure composition of frozen contracts — no new models, vocabulary or business logic."
+description: "FEBRIC Runtime Composition Layer (M10/M11): CompositeCanvasRuntime implements the frozen CanvasRuntimeContract (ADR-0018) by owning and delegating to the existing interaction (M6), selection (M7), transform (M8), layer (M9) and tool (M11) runtimes. It fills the M6 selection routing stub (hit -> SelectionRuntime), wires the frozen flow's `-> Tool` edge (assembling the ToolContext from its own live viewport/selection), and exposes caller-initiated transform/layer/tool pass-throughs. Pure composition of frozen contracts — no new models, vocabulary or business logic; no command sink held for tools."
 version: 0.1.0
 publish_to: none
 resolution: workspace
@@ -22,10 +22,20 @@ dependencies:
     path: ../core_layer
   core_layer_runtime:
     path: ../core_layer_runtime
+  core_lock:
+    path: ../core_lock
+  core_selection:
+    path: ../core_selection
   core_selection_runtime:
     path: ../core_selection_runtime
+  core_tool_runtime:
+    path: ../core_tool_runtime
+  core_tooling:
+    path: ../core_tooling
   core_transform_runtime:
     path: ../core_transform_runtime
 
 dev_dependencies:
+  core_textile:
+    path: ../core_textile
   test: ^1.25.0

@@ -6,7 +6,10 @@ import 'package:core_document/core_document.dart';
 import 'package:core_interaction/core_interaction.dart';
 import 'package:core_layer/core_layer.dart';
 import 'package:core_layer_runtime/core_layer_runtime.dart';
+import 'package:core_lock/core_lock.dart';
+import 'package:core_selection/core_selection.dart';
 import 'package:core_selection_runtime/core_selection_runtime.dart';
+import 'package:core_tool_runtime/core_tool_runtime.dart';
 import 'package:core_tooling/core_tooling.dart';
 import 'package:core_transform_runtime/core_transform_runtime.dart';
 
@@ -30,10 +33,15 @@ import 'package:core_transform_runtime/core_transform_runtime.dart';
 ///   [SelectionState.empty] (the canvas *routes* selection, never owns it).
 ///
 /// Alongside the contract it exposes **caller-initiated** pass-throughs for the
-/// transform (M8) and layer (M9) runtimes. Raw input never drives those — the
-/// composition honours M8 (no gesture→transform mapping) and M9 (no implicit
-/// mutation): transform/layer operations happen only through these explicit
-/// entry points.
+/// transform (M8), layer (M9) and tool (M11) runtimes. Raw input never drives
+/// those — the composition honours M8 (no gesture→transform mapping), M9 (no
+/// implicit mutation) and M11 (tool execution is caller-initiated, never
+/// auto-triggered by input): those operations happen only through these
+/// explicit entry points. Tool activation assembles the frozen `ToolContext`
+/// from the composition's own live viewport and routed selection — the wiring
+/// value M11 adds — while the tool's command-bus binding stays where it was
+/// resolved to live: in the concrete tool's own construction (this composition
+/// holds no command sink for tools).
 ///
 /// The composition introduces **no new model, vocabulary or business logic**.
 /// Selection combine policy stays in the frozen `SelectionState`; transform
@@ -49,15 +57,18 @@ final class CompositeCanvasRuntime implements CanvasRuntimeContract {
     required SelectionRuntime selection,
     required TransformRuntime transform,
     required LayerRuntime layer,
+    required ToolRuntime tool,
   }) : _interaction = interaction, // ignore: prefer_initializing_formals
        _selection = selection, // ignore: prefer_initializing_formals
        _transform = transform, // ignore: prefer_initializing_formals
-       _layer = layer; // ignore: prefer_initializing_formals
+       _layer = layer, // ignore: prefer_initializing_formals
+       _tool = tool; // ignore: prefer_initializing_formals
 
   final InteractionSession _interaction;
   final SelectionRuntime _selection;
   final TransformRuntime _transform;
   final LayerRuntime _layer;
+  final ToolRuntime _tool;
 
   // ===================================================== CanvasRuntimeContract
   // Pure delegation to the frozen M6 InteractionSession.
@@ -240,4 +251,81 @@ final class CompositeCanvasRuntime implements CanvasRuntimeContract {
     source: source,
     author: author,
   );
+
+  // ========================================== caller-initiated tool (M11)
+  // Explicit only: hosts frozen UniversalToolContract instances through the
+  // M11 ToolRuntime. Raw input never triggers tool execution (M11: tool
+  // execution is caller-initiated). Tool activation assembles the frozen
+  // ToolContext from this composition's own live viewport and routed
+  // selection — the caller may still override either and supply locks, a
+  // region and config. The composition holds no command sink: a tool's
+  // bus binding lives in the tool's own construction.
+
+  /// Registers a frozen [UniversalToolContract] with the M11 runtime; returns
+  /// the tool id (its `metadata().tool.wireName`). Verbatim delegation.
+  String registerTool(UniversalToolContract tool) => _tool.registerTool(tool);
+
+  /// The active tool id, from the M11 runtime.
+  String? get activeToolId => _tool.activeToolId;
+
+  /// Activates the tool under [toolId]. Defaults the frozen [ToolContext]'s
+  /// viewport and selection to this composition's own live values (the wiring
+  /// M11 adds); either may be overridden, and locks/region/config supplied.
+  /// Delegates lifecycle ordering to the M11 runtime.
+  Future<void> activateTool(
+    String toolId, {
+    ViewportState? viewport,
+    SelectionState? selection,
+    LockSet locks = LockSet.none,
+    SelectionSnapshot? regionSelection,
+    Map<String, Object?> config = const <String, Object?>{},
+  }) => _tool.activate(
+    toolId,
+    viewport: viewport ?? this.viewport,
+    selection: selection ?? this.selection,
+    locks: locks,
+    regionSelection: regionSelection,
+    config: config,
+  );
+
+  /// Deactivates the active tool (M11 runtime). Safe with no active tool.
+  Future<void> deactivateTool() => _tool.deactivate();
+
+  /// Ends the lifetime of the tool under [toolId] (M11 runtime).
+  Future<void> disposeTool(String toolId) => _tool.disposeTool(toolId);
+
+  /// Routes a non-destructive [ToolPreview] request to the active tool (M11
+  /// runtime); returns the frozen preview verbatim, or null with no active
+  /// tool. Never reaches the document (invariant I2).
+  Future<ToolPreview?> previewTool(ToolRequest request) =>
+      _tool.preview(request);
+
+  /// Routes [ToolRequest] execution to the active tool (M11 runtime); returns
+  /// the frozen [ToolResult] verbatim. The tool applies through the command
+  /// bus it was constructed with — this composition holds no sink.
+  Future<ToolResult> executeTool(ToolRequest request) => _tool.execute(request);
+
+  /// Cancels in-flight work on the active tool (M11 runtime). Always safe.
+  Future<void> cancelTool() => _tool.cancel();
+
+  /// Routes [undo] to the active tool (M11 runtime); frozen result verbatim.
+  Future<ToolResult> undoTool() => _tool.undo();
+
+  /// Routes [redo] to the active tool (M11 runtime); frozen result verbatim.
+  Future<ToolResult> redoTool() => _tool.redo();
+
+  /// The active tool's frozen `history()` (M11 runtime), or null when no tool
+  /// is active.
+  ToolHistory? get activeToolHistory => _tool.activeHistory;
+
+  /// The active tool's frozen `metadata()` (M11 runtime), or null when no tool
+  /// is active.
+  ToolMetadata? get activeToolMetadata => _tool.activeMetadata;
+
+  /// Stores a tool's frozen [ToolStateExtension] keyed by `toolId` (M11
+  /// runtime). The payload is opaque to the composition.
+  void saveToolState(ToolStateExtension state) => _tool.saveToolState(state);
+
+  /// The stored [ToolStateExtension] for [toolId] (M11 runtime), or null.
+  ToolStateExtension? toolState(String toolId) => _tool.toolState(toolId);
 }

@@ -4,8 +4,11 @@ import 'package:core_document/core_document.dart';
 import 'package:core_interaction/core_interaction.dart';
 import 'package:core_layer/core_layer.dart';
 import 'package:core_layer_runtime/core_layer_runtime.dart';
+import 'package:core_lock/core_lock.dart';
 import 'package:core_runtime/core_runtime.dart';
 import 'package:core_selection_runtime/core_selection_runtime.dart';
+import 'package:core_textile/core_textile.dart';
+import 'package:core_tool_runtime/core_tool_runtime.dart';
 import 'package:core_tooling/core_tooling.dart';
 import 'package:core_transform_runtime/core_transform_runtime.dart';
 import 'package:test/test.dart';
@@ -61,6 +64,7 @@ CompositeCanvasRuntime _composite({
   SelectionRuntime? selection,
   TransformRuntime? transform,
   LayerRuntime? layer,
+  ToolRuntime? tool,
 }) => CompositeCanvasRuntime(
   interaction:
       interaction ??
@@ -68,6 +72,7 @@ CompositeCanvasRuntime _composite({
   selection: selection ?? SelectionRuntime(),
   transform: transform ?? TransformRuntime(),
   layer: layer ?? LayerRuntime(sink: _SpySink().call),
+  tool: tool ?? ToolRuntime(),
 );
 
 void main() {
@@ -205,6 +210,7 @@ void main() {
         selection: SelectionRuntime(),
         transform: TransformRuntime(),
         layer: LayerRuntime(sink: engine.apply),
+        tool: ToolRuntime(),
       );
       // input path
       r.handleInput(
@@ -309,6 +315,151 @@ void main() {
       expect(result, spy.result);
     });
   });
+
+  // The wired `… → Tool` edge (M11). The composition hosts a frozen
+  // UniversalToolContract through the ToolRuntime, assembling the ToolContext
+  // from its own live state. Raw input never triggers tool execution.
+  group('V11 — caller-initiated tool wiring (the `→ Tool` edge)', () {
+    test('activateTool assembles the ToolContext from the live viewport/'
+        'selection and drives lifecycle', () async {
+      final tool = _RecordingTool();
+      final r = _composite();
+      final id = r.registerTool(tool);
+      expect(id, FebricTool.repeatPattern.wireName);
+      await r.activateTool(id);
+      expect(tool.calls, ['initialize', 'activate']);
+      // The context defaulted to the composition's own live values.
+      expect(tool.initializedWith!.viewport, r.viewport);
+      expect(tool.initializedWith!.selection, r.selection);
+      expect(r.activeToolId, id);
+    });
+
+    test(
+      'preview/execute/undo/redo route to the active tool verbatim',
+      () async {
+        final tool = _RecordingTool();
+        final r = _composite();
+        final id = r.registerTool(tool);
+        await r.activateTool(id);
+        expect((await r.previewTool(const ToolRequest()))!.previewId, 'pv');
+        expect(
+          (await r.executeTool(const ToolRequest())).status,
+          ToolResultStatus.success,
+        );
+        expect((await r.undoTool()).status, ToolResultStatus.success);
+        expect((await r.redoTool()).status, ToolResultStatus.success);
+        await r.cancelTool();
+        expect(
+          tool.calls,
+          containsAll(['preview', 'execute', 'undo', 'redo', 'cancel']),
+        );
+      },
+    );
+
+    test(
+      'handleInput never triggers tool execution (M11 caller-initiated)',
+      () {
+        final tool = _RecordingTool();
+        final r = _composite();
+        final id = r.registerTool(tool);
+        // Not even activated — input drives interaction→selection only.
+        r.handleInput(
+          const InteractionEvent.tap(position: Point2D(x: 10, y: 10)),
+        );
+        expect(r.selection.selectedIds, contains('node-1'));
+        expect(tool.calls, isEmpty);
+        expect(r.activeToolId, isNull);
+        expect(id, isNotEmpty);
+      },
+    );
+
+    test(
+      'history/metadata and tool-state seam delegate to the M11 runtime',
+      () async {
+        final r = _composite();
+        final id = r.registerTool(_RecordingTool());
+        await r.activateTool(id);
+        expect(r.activeToolHistory!.entries.single.id, 'h');
+        expect(r.activeToolMetadata!.tool, FebricTool.repeatPattern);
+        const st = ToolStateExtension(toolId: 'repeat_pattern', data: {'n': 1});
+        r.saveToolState(st);
+        expect(r.toolState('repeat_pattern'), st);
+      },
+    );
+
+    test(
+      'deactivateTool / disposeTool drive lifecycle through the runtime',
+      () async {
+        final tool = _RecordingTool();
+        final r = _composite();
+        final id = r.registerTool(tool);
+        await r.activateTool(id);
+        await r.deactivateTool();
+        expect(r.activeToolId, isNull);
+        await r.disposeTool(id);
+        expect(tool.calls, contains('dispose'));
+      },
+    );
+  });
+}
+
+/// A minimal frozen-contract tool that records its lifecycle calls — proves
+/// the composition drives the contract without adding behaviour.
+final class _RecordingTool implements UniversalToolContract {
+  final List<String> calls = <String>[];
+  ToolContext? initializedWith;
+
+  @override
+  Future<void> initialize(ToolContext context) async {
+    calls.add('initialize');
+    initializedWith = context;
+  }
+
+  @override
+  Future<void> dispose() async => calls.add('dispose');
+  @override
+  Future<void> activate() async => calls.add('activate');
+  @override
+  Future<void> deactivate() async => calls.add('deactivate');
+  @override
+  Future<ToolPreview> preview(ToolRequest request) async {
+    calls.add('preview');
+    return const ToolPreview(previewId: 'pv', description: 'd');
+  }
+
+  @override
+  Future<ToolResult> execute(ToolRequest request) async {
+    calls.add('execute');
+    return ToolResult.success;
+  }
+
+  @override
+  Future<void> cancel() async => calls.add('cancel');
+  @override
+  Future<ToolResult> undo() async {
+    calls.add('undo');
+    return ToolResult.success;
+  }
+
+  @override
+  Future<ToolResult> redo() async {
+    calls.add('redo');
+    return ToolResult.success;
+  }
+
+  @override
+  SelectionState selection() => SelectionState.empty;
+  @override
+  ViewportState viewport() => _viewport();
+  @override
+  ToolHistory history() => const ToolHistory(
+    entries: [ToolHistoryEntry(id: 'h', description: 'd')],
+  );
+  @override
+  LockSet lock() => LockSet.none;
+  @override
+  ToolMetadata metadata() =>
+      const ToolMetadata(tool: FebricTool.repeatPattern, version: '1.0.0');
 }
 
 FebricDocument _emptyDoc() => FebricDocument(

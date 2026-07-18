@@ -23,6 +23,7 @@ workspace:
   - packages/core_selection_runtime
   - packages/core_transform_runtime
   - packages/core_layer_runtime
+  - packages/core_tool_runtime
   - packages/core_runtime
   - packages/core_render
   - packages/core_document
