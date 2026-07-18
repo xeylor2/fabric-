@@ -218,6 +218,97 @@ void main() {
       expect(result, isA<CommandRejected>());
     });
   });
+
+  // Every remaining public member of CompositeCanvasRuntime delegates to the
+  // wrapped runtime. These assert the delegation happens (state observed or
+  // command forwarded), completing public-API coverage without adding logic.
+  group('Delegation coverage — remaining contract surface', () {
+    test('applyZoomCommand drives the wrapped session viewport', () {
+      final session = InteractionSession(
+        state: _state(),
+        hitTester: _StubHitTester(),
+      );
+      final r = _composite(interaction: session);
+      r.applyZoomCommand(ZoomCommand.zoomIn);
+      // Delegates to the same session: the composition and session agree.
+      expect(r.viewport, session.viewport);
+      expect(r.viewport.zoom, greaterThan(1.0));
+    });
+
+    test('contribute / withdraw route overlays through the session', () {
+      final r = _composite();
+      const overlay = OverlayModel(id: 'ov-1', kind: OverlayKind.selection);
+      r.contribute(overlay);
+      expect(r.overlays.entries.map((e) => e.id), contains('ov-1'));
+      r.withdraw('ov-1');
+      expect(r.overlays.entries.map((e) => e.id), isNot(contains('ov-1')));
+    });
+  });
+
+  group('Delegation coverage — layer traversal & remaining emits', () {
+    const tree = LayerModel(
+      id: 'root',
+      name: 'Root',
+      kind: LayerKind.group,
+      children: [
+        LayerModel(id: 'child', name: 'Child', kind: LayerKind.vector),
+      ],
+    );
+
+    test('findLayerById delegates to the M9 traversal', () {
+      final r = _composite();
+      expect(r.findLayerById(tree, 'child')?.id, 'child');
+      expect(r.findLayerById(tree, 'missing'), isNull);
+    });
+
+    test('activeLayer resolves the active id within the tree', () {
+      final r = _composite();
+      r.setActiveLayer('child');
+      expect(r.activeLayer(tree)?.id, 'child');
+    });
+
+    test('deleteLayer forwards a frozen DeleteLayerCommand verbatim', () {
+      final spy = _SpySink();
+      final r = _composite(layer: LayerRuntime(sink: spy.call));
+      final result = r.deleteLayer(artboardId: 'ab', layerId: 'l');
+      expect(spy.commands.single, isA<DeleteLayerCommand>());
+      expect(result, spy.result);
+    });
+
+    test('moveLayer forwards a frozen MoveLayerCommand verbatim', () {
+      final spy = _SpySink();
+      final r = _composite(layer: LayerRuntime(sink: spy.call));
+      final result = r.moveLayer(
+        artboardId: 'ab',
+        layerId: 'l',
+        newParentId: 'p',
+        index: 0,
+      );
+      expect(spy.commands.single, isA<MoveLayerCommand>());
+      expect(result, spy.result);
+    });
+
+    test('renameLayer forwards a frozen RenameLayerCommand verbatim', () {
+      final spy = _SpySink();
+      final r = _composite(layer: LayerRuntime(sink: spy.call));
+      final result = r.renameLayer(artboardId: 'ab', layerId: 'l', name: 'New');
+      expect(spy.commands.single, isA<RenameLayerCommand>());
+      expect(result, spy.result);
+    });
+
+    test('setLayerMetadata forwards a frozen SetLayerMetadataCommand', () {
+      final spy = _SpySink();
+      final r = _composite(layer: LayerRuntime(sink: spy.call));
+      final result = r.setLayerMetadata(
+        artboardId: 'ab',
+        layerId: 'l',
+        key: 'k',
+        value: 'v',
+      );
+      expect(spy.commands.single, isA<SetLayerMetadataCommand>());
+      expect(result, spy.result);
+    });
+  });
 }
 
 FebricDocument _emptyDoc() => FebricDocument(
