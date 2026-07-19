@@ -10,6 +10,8 @@
 library;
 
 export 'src/core_ai_package.dart';
+export 'src/credits/credit_estimate.dart';
+export 'src/jobs/ai_job.dart';
 export 'src/pipeline/ai_pipeline.dart';
 export 'src/prompt/ai_provider_id.dart';
 export 'src/prompt/prompt_pipeline.dart';
