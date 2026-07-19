@@ -30,6 +30,7 @@ workspace:
   - packages/core_garment
   - packages/core_color
   - packages/core_ai
+  - packages/core_ai_staging
   - packages/core_asset
   - packages/core_assets
   - packages/core_imaging
