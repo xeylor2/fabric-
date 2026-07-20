@@ -11,6 +11,8 @@ library;
 
 export 'src/api_manager/job_router.dart';
 export 'src/api_manager/provider_profile.dart';
+export 'src/conversation/prompt_compilation.dart';
+export 'src/conversation/prompt_template.dart';
 export 'src/core_ai_package.dart';
 export 'src/credits/credit_estimate.dart';
 export 'src/jobs/ai_job.dart';
