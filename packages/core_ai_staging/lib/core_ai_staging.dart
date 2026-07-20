@@ -20,5 +20,7 @@ library;
 
 export 'src/ai_proposal.dart';
 export 'src/execution_orchestrator.dart';
+export 'src/execution_plan.dart';
+export 'src/plan_dispatcher.dart';
 export 'src/proposal_staging_area.dart';
 export 'src/proposal_staging_contract.dart';
