@@ -11,6 +11,7 @@
 /// Blueprint: docs/architecture/architecture-v2.md (Architecture V2).
 library;
 
+export 'src/color/production_colour_bridge.dart';
 export 'src/core_production_package.dart';
 export 'src/jobs/production_job.dart';
 export 'src/preflight/preflight.dart';
