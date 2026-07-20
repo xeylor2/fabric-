@@ -17,3 +17,5 @@ export 'src/jobs/ai_job.dart';
 export 'src/pipeline/ai_pipeline.dart';
 export 'src/prompt/ai_provider_id.dart';
 export 'src/prompt/prompt_pipeline.dart';
+export 'src/providers/execution_outcome.dart';
+export 'src/providers/provider_adapter_registry.dart';
