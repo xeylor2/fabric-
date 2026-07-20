@@ -13,6 +13,7 @@ library;
 
 export 'src/color/production_colour_bridge.dart';
 export 'src/core_production_package.dart';
+export 'src/encode/production_encode.dart';
 export 'src/jobs/production_job.dart';
 export 'src/preflight/preflight.dart';
 export 'src/render/production_render_bridge.dart';
