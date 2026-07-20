@@ -15,6 +15,7 @@ export 'src/conversation/prompt_compilation.dart';
 export 'src/conversation/prompt_template.dart';
 export 'src/core_ai_package.dart';
 export 'src/credits/credit_estimate.dart';
+export 'src/inspection/inspection_report.dart';
 export 'src/jobs/ai_job.dart';
 export 'src/pipeline/ai_pipeline.dart';
 export 'src/prompt/ai_provider_id.dart';

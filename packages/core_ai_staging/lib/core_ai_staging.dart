@@ -24,3 +24,4 @@ export 'src/execution_plan.dart';
 export 'src/plan_dispatcher.dart';
 export 'src/proposal_staging_area.dart';
 export 'src/proposal_staging_contract.dart';
+export 'src/tree_proposal_stager.dart';
