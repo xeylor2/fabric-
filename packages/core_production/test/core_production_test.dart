@@ -1,5 +1,5 @@
 import 'package:core_production/core_production.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 void main() {
   test('core_production package marker is wired', () {

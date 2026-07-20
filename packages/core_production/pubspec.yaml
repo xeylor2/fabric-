@@ -1,5 +1,5 @@
 name: core_production
-description: "FEBRIC Production engine: preflight rules, production rendering, encoders, packaging."
+description: "FEBRIC Production engine (M13A): the ProductionJob model with the frozen §12 stage pipeline (preflight → render → color → encode → package) as a value-level state machine, and the deterministic Preflight rule engine — pure evaluation of frozen document models (effective DPI via the frozen UnitConverter, colour count vs injected technique limits, structural size/DPI checks) with every threshold injected (mill policy is never frozen here). Pure Dart (isolates + backend reuse, Architecture V2 §12/§16): no Flutter, no rendering, no document mutation. Later slices add render, colour management, encoding and packaging behind their own reviews."
 version: 0.1.0
 publish_to: none
 resolution: workspace
@@ -8,17 +8,22 @@ environment:
   sdk: ^3.12.0
 
 dependencies:
-  flutter:
-    sdk: flutter
   core_common:
     path: ../core_common
   core_document:
     path: ../core_document
-  core_color:
-    path: ../core_color
-  core_rendering:
-    path: ../core_rendering
+  core_geometry:
+    path: ../core_geometry
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.9.0
+  meta: ^1.16.0
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
+  build_runner: ^2.15.0
+  core_layer:
+    path: ../core_layer
+  core_textile:
+    path: ../core_textile
+  freezed: ^3.2.3
+  json_serializable: ^6.11.1
+  test: ^1.25.0

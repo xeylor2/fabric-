@@ -40,6 +40,7 @@ const Set<String> pureDartCorePackages = {
   'core_ai',
   'core_ai_staging',
   'core_asset',
+  'core_production',
   'core_assets',
 };
 
