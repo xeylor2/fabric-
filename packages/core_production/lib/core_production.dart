@@ -14,3 +14,4 @@ library;
 export 'src/core_production_package.dart';
 export 'src/jobs/production_job.dart';
 export 'src/preflight/preflight.dart';
+export 'src/render/production_render_bridge.dart';
