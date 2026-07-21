@@ -1,5 +1,5 @@
 name: core_garment
-description: "FEBRIC Garment Structure and Library engines: schemas, part definitions, templates, content packs, instantiation."
+description: "FEBRIC Garment Structure and Library engines: schemas, part definitions, templates, content packs, instantiation. M13F ships the §3 Garment Structure vocabulary — the versioned GarmentSchema with typed PartDefinitions (frozen GarmentPart/GarmentType keys, physical-unit-first panel geometry with seam/bleed PartInsets, ZoneSlot declarations, symmetry links as data relations) — and the deterministic SchemaGarmentInstantiator producing frozen DesignNode subtrees that write the frozen SemanticPath metadata keys (garment_type/part/instance) exactly as the frozen resolver reads them. Schema CONTENT is injected (content-team JSON; Schema Studio, Phase 4): zero launch-schema content, zero fitting logic, zero garment policy ships here. Templates/packs (the Library) arrive with their own slice."
 version: 0.1.0
 publish_to: none
 resolution: workspace
@@ -12,6 +12,18 @@ dependencies:
     path: ../core_common
   core_document:
     path: ../core_document
+  core_geometry:
+    path: ../core_geometry
+  core_textile:
+    path: ../core_textile
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.9.0
+  meta: ^1.16.0
 
 dev_dependencies:
+  build_runner: ^2.15.0
+  core_layer:
+    path: ../core_layer
+  freezed: ^3.2.3
+  json_serializable: ^6.11.1
   test: ^1.25.0
