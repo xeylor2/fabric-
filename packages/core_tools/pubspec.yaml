@@ -1,0 +1,25 @@
+name: core_tools
+description: "FEBRIC Element Engine tool implementations: deterministic UniversalToolContract tools (Repeat Pattern, Colour Shift) hosted by the M11 Tool Runtime, emitting only frozen DocumentCommands. Implementations only (D1): no contract, no vocabulary, no runtime, no UI ships here. AI-backed tools arrive with their own milestone."
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  core_common:
+    path: ../core_common
+  core_document:
+    path: ../core_document
+  core_interaction:
+    path: ../core_interaction
+  core_lock:
+    path: ../core_lock
+  core_textile:
+    path: ../core_textile
+  core_tooling:
+    path: ../core_tooling
+
+dev_dependencies:
+  test: ^1.25.0

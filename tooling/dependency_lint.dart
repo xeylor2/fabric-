@@ -32,6 +32,7 @@ const Set<String> pureDartCorePackages = {
   'core_transform_runtime',
   'core_layer_runtime',
   'core_tool_runtime',
+  'core_tools',
   'core_runtime',
   'core_render',
   'core_document',
