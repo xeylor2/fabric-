@@ -9,5 +9,6 @@
 /// Blueprint: docs/architecture/architecture-v2.md (Architecture V2).
 library;
 
+export 'src/colour/colour_shift_tool.dart';
 export 'src/core_tools_package.dart';
 export 'src/repeat/repeat_pattern_tool.dart';

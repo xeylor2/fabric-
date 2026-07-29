@@ -10,10 +10,14 @@ import 'package:core_textile/core_textile.dart';
 /// (the S2-justified dev edges: core_layer, core_geometry).
 final DateTime t0 = DateTime.utc(2026, 7, 26, 10);
 
-/// Optionally pre-seeds element [nodes] structurally (data, not commands),
-/// so the engine baseline starts with an EMPTY history — pre-seeding is
-/// setup, never part of the timeline under test.
-FebricDocument documentWithArtboard({List<DesignNode> nodes = const []}) {
+/// Optionally pre-seeds element [nodes] and compositing [layers]
+/// structurally (data, not commands), so the engine baseline starts with
+/// an EMPTY history — pre-seeding is setup, never part of the timeline
+/// under test.
+FebricDocument documentWithArtboard({
+  List<DesignNode> nodes = const [],
+  List<LayerModel> layers = const [],
+}) {
   return FebricDocument(
     id: const DocumentId('doc-1'),
     projectId: const ProjectId('project-1'),
@@ -36,10 +40,11 @@ FebricDocument documentWithArtboard({List<DesignNode> nodes = const []}) {
         size: const Size2D(width: 1200, height: 1800),
         dpi: 300,
         backgroundColourHex: '#F0EADD',
-        layerRoot: const LayerModel(
+        layerRoot: LayerModel(
           id: 'ab-1-layers',
           name: 'Layers',
           kind: LayerKind.artboard,
+          children: layers,
         ),
         designTreeRoot: DesignNode(
           id: 'ab-1-tree',
