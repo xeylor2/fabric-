@@ -22,4 +22,8 @@ dependencies:
     path: ../core_tooling
 
 dev_dependencies:
+  core_geometry:
+    path: ../core_geometry
+  core_layer:
+    path: ../core_layer
   test: ^1.25.0

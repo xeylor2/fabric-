@@ -10,3 +10,4 @@
 library;
 
 export 'src/core_tools_package.dart';
+export 'src/repeat/repeat_pattern_tool.dart';
