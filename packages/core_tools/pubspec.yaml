@@ -26,4 +26,6 @@ dev_dependencies:
     path: ../core_geometry
   core_layer:
     path: ../core_layer
+  core_tool_runtime:
+    path: ../core_tool_runtime
   test: ^1.25.0
