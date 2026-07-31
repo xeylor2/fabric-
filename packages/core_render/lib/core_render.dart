@@ -57,5 +57,6 @@ export 'src/runtime/render_pass_runtime.dart';
 export 'src/runtime/render_pipeline_runtime.dart';
 export 'src/runtime/render_queue_runtime.dart';
 export 'src/runtime/resource_registry_runtime.dart';
+export 'src/runtime/textile_render_producers.dart';
 export 'src/target/render_target.dart';
 export 'src/vocabulary/render_vocabulary.dart';
