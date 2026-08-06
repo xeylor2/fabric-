@@ -35,7 +35,7 @@ final class HeadlessFrameResult {
 /// Output is deterministic (§F, L1): structural metrics are exact.
 final class HeadlessRenderer {
   factory HeadlessRenderer({
-    RenderGraphCompiler? compiler,
+    GraphCompiler? compiler,
     CullService? cull,
     HeadlessRenderBackend? backend,
     RenderMetricsSink? metricsSink,
@@ -66,7 +66,7 @@ final class HeadlessRenderer {
     required this.metricsSink,
     required this._pipeline,
   });
-  final RenderGraphCompiler compiler;
+  final GraphCompiler compiler;
   final CullService cull;
   final HeadlessRenderBackend backend;
 

@@ -46,6 +46,7 @@ export 'src/recording/render_command_encoder.dart';
 export 'src/repository/render_cache_repository.dart';
 export 'src/resource/resource.dart';
 // M5B-2 headless runtime services (pure Dart; implement the M5B-1 contracts).
+export 'src/runtime/composite_graph_compiler.dart';
 export 'src/runtime/cull_runtime.dart';
 export 'src/runtime/design_node_producers.dart';
 export 'src/runtime/dirty_region.dart';
