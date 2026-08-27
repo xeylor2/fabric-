@@ -1,3 +1,4 @@
+import 'package:core_common/core_common.dart';
 import 'package:core_document/core_document.dart';
 import 'package:core_geometry/core_geometry.dart';
 import 'package:core_layer/core_layer.dart';
@@ -29,8 +30,13 @@ class DesignTreeSession {
 
   final DocumentEngine engine;
 
-  /// The single authorized design-node movement emission owner.
+  /// The single authorized design-node movement emission owner, and (M9) the
+  /// owner of layer-command emission.
   final LayerRuntime _owner;
+
+  /// Frozen id seam for new layers (M20). Deterministic within a session; the
+  /// frozen reducer rejects a duplicate id.
+  final IdGenerator _layerIds = SequentialIdGenerator(prefix: 'layer');
 
   /// Bumped after every engine interaction so presentation re-reads state.
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
@@ -78,6 +84,102 @@ class DesignTreeSession {
     _record(result);
     return result;
   }
+
+  // ------------------------------------------- layer structural editing (M20)
+  // Same discipline as the design-node path: the composition root forwards
+  // operands, the owner builds the frozen command, the engine does everything
+  // else. Nothing is constructed here.
+
+  /// Flattened layer rows for the panel: id, label, depth, parent id, sibling
+  /// index and a rendered metadata line (null when the layer has none).
+  List<
+    ({
+      String id,
+      String label,
+      int depth,
+      String? parentId,
+      int index,
+      String? metadata,
+    })
+  >
+  get layerRows {
+    final out =
+        <
+          ({
+            String id,
+            String label,
+            int depth,
+            String? parentId,
+            int index,
+            String? metadata,
+          })
+        >[];
+    void walk(LayerModel layer, int depth, String? parentId, int index) {
+      out.add((
+        id: layer.id,
+        label: layer.name,
+        depth: depth,
+        parentId: parentId,
+        index: index,
+        metadata: layer.metadata.isEmpty
+            ? null
+            : layer.metadata.entries
+                  .map((e) => '${e.key}=${e.value}')
+                  .join('; '),
+      ));
+      for (var i = 0; i < layer.children.length; i++) {
+        walk(layer.children[i], depth + 1, layer.id, i);
+      }
+    }
+
+    walk(engine.document.artboards.first.layerRoot, 0, null, 0);
+    return out;
+  }
+
+  /// Adds a child layer under [parentLayerId] (appended). The kind is the
+  /// frozen [LayerKind.layer]; no kind vocabulary is exposed or extended.
+  CommandResult createLayer(String parentLayerId, String name) => _record(
+    _owner.createLayer(
+      artboardId: artboardId,
+      layer: LayerModel(
+        id: _layerIds.next(),
+        name: name,
+        kind: LayerKind.layer,
+      ),
+      parentLayerId: parentLayerId,
+    ),
+  );
+
+  CommandResult deleteLayer(String layerId) =>
+      _record(_owner.deleteLayer(artboardId: artboardId, layerId: layerId));
+
+  /// Structural layer movement: same parent + new index reorders, new parent
+  /// + index reparents. Ids and an integer index only.
+  CommandResult moveLayer(String layerId, String newParentId, int index) =>
+      _record(
+        _owner.moveLayer(
+          artboardId: artboardId,
+          layerId: layerId,
+          newParentId: newParentId,
+          index: index,
+        ),
+      );
+
+  CommandResult renameLayer(String layerId, String name) => _record(
+    _owner.renameLayer(artboardId: artboardId, layerId: layerId, name: name),
+  );
+
+  /// Sets or clears one open metadata entry — a null [value] clears it
+  /// (frozen reducer semantics). No metadata key vocabulary is defined.
+  CommandResult setLayerMetadata(String layerId, String key, Object? value) =>
+      _record(
+        _owner.setLayerMetadata(
+          artboardId: artboardId,
+          layerId: layerId,
+          key: key,
+          value: value,
+        ),
+      );
 
   /// The engine's own undo/redo — no separate mechanism exists.
   CommandResult undo() => _record(engine.undo());

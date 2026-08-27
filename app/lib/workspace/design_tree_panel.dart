@@ -22,6 +22,12 @@ class DesignTreePanel extends ConsumerWidget {
         onUndo: session.undo,
         onRedo: session.redo,
         statusMessage: session.lastResult,
+        layerRows: session.layerRows,
+        onLayerAdd: session.createLayer,
+        onLayerDelete: session.deleteLayer,
+        onLayerMove: session.moveLayer,
+        onLayerRename: session.renameLayer,
+        onLayerMetadata: session.setLayerMetadata,
       ),
     );
   }
