@@ -1,9 +1,11 @@
 import 'package:core_common/core_common.dart';
 import 'package:core_document/core_document.dart';
+import 'package:core_garment/core_garment.dart';
 import 'package:core_geometry/core_geometry.dart';
 import 'package:core_layer/core_layer.dart';
 import 'package:core_layer_runtime/core_layer_runtime.dart';
 import 'package:core_textile/core_textile.dart';
+import 'package:febric/di/garment_content.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -42,6 +44,16 @@ class DesignTreeSession {
   /// generator feeds `DesignTreeOps.cloneWithIds`, which is the frozen clone
   /// seam the duplicate command requires.
   final IdGenerator _nodeIds = SequentialIdGenerator(prefix: 'node');
+
+  /// Frozen id seam for instantiated garment roots. The frozen instantiator
+  /// derives every part and zone id mechanically from this root id, so one
+  /// fresh root id per instantiation keeps a repeated instantiation
+  /// collision-free (the frozen "ids are the caller's namespace" doctrine).
+  final IdGenerator _garmentIds = SequentialIdGenerator(prefix: 'garment');
+
+  /// The frozen Library registry, loaded with the launch garment schemas at
+  /// the composition root. Content is injected, never shipped by the engine.
+  final GarmentTemplateRegistry _garments = launchGarmentRegistry();
 
   /// Bumped after every engine interaction so presentation re-reads state.
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
@@ -309,6 +321,42 @@ class DesignTreeSession {
   /// The engine's own undo/redo — no separate mechanism exists.
   CommandResult undo() => _record(engine.undo());
   CommandResult redo() => _record(engine.redo());
+
+  // ------------------------------------------- garment composition (stage)
+  // The frozen chain, reused end to end and nothing more:
+  //   injected GarmentSchema content → SchemaGarmentInstantiator (returns a
+  //   frozen DesignNode subtree, emits nothing) → LayerRuntime.createDesignNode
+  //   (the M21-authorized emission) → DocumentCommandSink → DocumentEngine.apply.
+  // No parallel garment representation, no second write path, no new tier.
+
+  /// The garment types the injected content can instantiate, as primitives for
+  /// presentation: the frozen wire name as id, the frozen label for display.
+  List<({String id, String label})> get garmentChoices => [
+    for (final type in launchGarmentTypes) (id: type.wireName, label: type.label),
+  ];
+
+  /// Instantiates the launch schema for [garmentWireName] and lands the whole
+  /// frozen subtree under the design-tree root as one authorized
+  /// `createDesignNode`. The parts and their canonical order come from the
+  /// frozen [GarmentAnatomy]; every id is derived by the frozen instantiator.
+  CommandResult instantiateGarment(String garmentWireName) {
+    final type = GarmentType.fromWireName(garmentWireName);
+    final schema = _garments.schemaFor(launchSchemaId(type));
+    if (schema == null) {
+      // Unreachable: every launch schema is registered at construction, and
+      // `garmentChoices` offers only those. Not a document rejection path.
+      throw StateError('No registered garment schema for ${type.wireName}');
+    }
+    return _record(
+      _owner.createDesignNode(
+        artboardId: artboardId,
+        node: const SchemaGarmentInstantiator().instantiate(
+          schema,
+          rootId: _garmentIds.next(),
+        ),
+      ),
+    );
+  }
 
   CommandResult _record(CommandResult result) {
     lastResult = switch (result) {

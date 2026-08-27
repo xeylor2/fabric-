@@ -35,6 +35,8 @@ class DesignTreePanel extends ConsumerWidget {
         onNodeVisibility: session.setNodeVisibility,
         onNodeLocked: session.setNodeLocked,
         onNodeMetadata: session.setNodeMetadata,
+        garmentChoices: session.garmentChoices,
+        onGarmentAdd: session.instantiateGarment,
       ),
     );
   }

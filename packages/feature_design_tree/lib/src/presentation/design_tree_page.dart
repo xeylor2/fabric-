@@ -36,6 +36,8 @@ class DesignTreePage extends StatefulWidget {
     this.onNodeVisibility,
     this.onNodeLocked,
     this.onNodeMetadata,
+    this.garmentChoices,
+    this.onGarmentAdd,
   });
 
   /// Flattened design-tree rows: node id, display label, depth, the parent that
@@ -124,6 +126,14 @@ class DesignTreePage extends StatefulWidget {
   /// null).
   final void Function(String nodeId, String key, Object? value)? onNodeMetadata;
 
+  /// The garment compositions the user can add: a stable id and a display
+  /// label. Primitives only — no garment domain type crosses into
+  /// presentation.
+  final List<({String id, String label})>? garmentChoices;
+
+  /// Reports the garment the user asked to add, by its id.
+  final void Function(String garmentId)? onGarmentAdd;
+
   @override
   State<DesignTreePage> createState() => _DesignTreePageState();
 }
@@ -201,6 +211,7 @@ class _DesignTreePageState extends State<DesignTreePage> {
             )
           else
             const Spacer(),
+          ..._garmentSection(context),
           IconButton(
             key: const Key('design-tree-undo'),
             icon: const Icon(Icons.undo),
@@ -216,6 +227,33 @@ class _DesignTreePageState extends State<DesignTreePage> {
         ],
       ),
     );
+  }
+
+  /// The garment composition action, hosted in the existing toolbar so it adds
+  /// no vertical structure to the tree list (the M19/M20/M21 row layout is
+  /// unchanged). It reports an id and nothing else — the composition root owns
+  /// every garment meaning.
+  List<Widget> _garmentSection(BuildContext context) {
+    final choices = widget.garmentChoices;
+    final onAdd = widget.onGarmentAdd;
+    if (choices == null || choices.isEmpty || onAdd == null) {
+      return const <Widget>[];
+    }
+    return [
+      PopupMenuButton<void>(
+        key: const Key('garment-menu'),
+        tooltip: 'Add garment',
+        icon: const Icon(Icons.checkroom_outlined),
+        itemBuilder: (context) => [
+          for (final choice in choices)
+            PopupMenuItem<void>(
+              key: Key('garment-add-${choice.id}'),
+              onTap: () => onAdd(choice.id),
+              child: Text('Add ${choice.label}'),
+            ),
+        ],
+      ),
+    ];
   }
 
   /// The M21 operand fields for design-node editing. Their contents are read
