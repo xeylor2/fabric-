@@ -37,6 +37,8 @@ class DesignTreePanel extends ConsumerWidget {
         onNodeMetadata: session.setNodeMetadata,
         garmentChoices: session.garmentChoices,
         onGarmentAdd: session.instantiateGarment,
+        onFabricAdd: session.createFabric,
+        onMotifAdd: session.createMotif,
       ),
     );
   }

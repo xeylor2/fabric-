@@ -350,13 +350,41 @@ class DesignTreeSession {
     return _record(
       _owner.createDesignNode(
         artboardId: artboardId,
-        node: const SchemaGarmentInstantiator().instantiate(
-          schema,
-          rootId: _garmentIds.next(),
+        node: withTextileContent(
+          const SchemaGarmentInstantiator().instantiate(
+            schema,
+            rootId: _garmentIds.next(),
+          ),
         ),
       ),
     );
   }
+
+  // ------------------------------- fabric / base + printed motif layers
+  // Both are frozen content nodes classified by the frozen `object_type`
+  // metadata carrier (ADR-0019 read side). No node↔layer binding is created:
+  // the frozen "unrendered lawfulness" guarantee makes binding-free content
+  // first-class, so the layer tree stays untouched and ADR-0006 holds.
+
+  /// Adds the substrate cloth under [parentNodeId].
+  CommandResult createFabric(String parentNodeId) =>
+      _createTextileContent(parentNodeId, TextileObjectType.fabric);
+
+  /// Adds one independently editable printed motif layer under [parentNodeId].
+  /// Repeated calls add further motif layers; each is its own node.
+  CommandResult createMotif(String parentNodeId) =>
+      _createTextileContent(parentNodeId, TextileObjectType.motif);
+
+  CommandResult _createTextileContent(
+    String parentNodeId,
+    TextileObjectType type,
+  ) => _record(
+    _owner.createDesignNode(
+      artboardId: artboardId,
+      node: textileContentNode(id: _nodeIds.next(), type: type),
+      parentNodeId: parentNodeId,
+    ),
+  );
 
   CommandResult _record(CommandResult result) {
     lastResult = switch (result) {

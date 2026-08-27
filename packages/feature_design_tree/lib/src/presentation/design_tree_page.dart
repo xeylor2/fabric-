@@ -38,6 +38,8 @@ class DesignTreePage extends StatefulWidget {
     this.onNodeMetadata,
     this.garmentChoices,
     this.onGarmentAdd,
+    this.onFabricAdd,
+    this.onMotifAdd,
   });
 
   /// Flattened design-tree rows: node id, display label, depth, the parent that
@@ -133,6 +135,13 @@ class DesignTreePage extends StatefulWidget {
 
   /// Reports the garment the user asked to add, by its id.
   final void Function(String garmentId)? onGarmentAdd;
+
+  /// Reports a request to add the substrate cloth under the given node.
+  final void Function(String parentNodeId)? onFabricAdd;
+
+  /// Reports a request to add an independently editable printed motif layer
+  /// under the given node.
+  final void Function(String parentNodeId)? onMotifAdd;
 
   @override
   State<DesignTreePage> createState() => _DesignTreePageState();
@@ -450,7 +459,9 @@ class _DesignTreePageState extends State<DesignTreePage> {
         widget.onNodeVisibility != null ||
         widget.onNodeLocked != null ||
         widget.onNodeMetadata != null ||
-        widget.onNodeDelete != null;
+        widget.onNodeDelete != null ||
+        widget.onFabricAdd != null ||
+        widget.onMotifAdd != null;
     if (!wired) {
       return const <Widget>[];
     }
@@ -472,6 +483,18 @@ class _DesignTreePageState extends State<DesignTreePage> {
               enabled: widget.onNodeAdd != null,
               onTap: () => widget.onNodeAdd!(row.id, name),
               child: const Text('Add child node'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-add-fabric-${row.id}'),
+              enabled: widget.onFabricAdd != null,
+              onTap: () => widget.onFabricAdd!(row.id),
+              child: const Text('Add fabric / base'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-add-motif-${row.id}'),
+              enabled: widget.onMotifAdd != null,
+              onTap: () => widget.onMotifAdd!(row.id),
+              child: const Text('Add printed motif layer'),
             ),
             PopupMenuItem<void>(
               key: Key('node-rename-${row.id}'),
