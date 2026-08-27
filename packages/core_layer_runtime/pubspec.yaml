@@ -1,5 +1,5 @@
 name: core_layer_runtime
-description: "FEBRIC Layer Runtime (Scope B): the runtime orchestration layer that holds the active layer reference, exposes the frozen LayerModel traversal, emits existing frozen document commands (create/delete/move/rename/setLayerMetadata) and forwards them to the document runtime (DocumentEngine.apply). Never mutates LayerModel, never reduces commands itself, never replaces the document reducer. Introduces zero new layer semantics — pure composition of the frozen core_layer and core_document contracts."
+description: "FEBRIC Layer Runtime (Scope B): the runtime orchestration layer that holds the active layer reference, exposes the frozen LayerModel traversal, emits existing frozen document commands (create/delete/move/rename/setLayerMetadata, plus design-node structural movement — M19 NDH-1 Form A) and forwards them to the document runtime (DocumentEngine.apply). Never mutates LayerModel, never reduces commands itself, never replaces the document reducer. Introduces zero new layer semantics — pure composition of the frozen core_layer and core_document contracts."
 version: 0.1.0
 publish_to: none
 resolution: workspace

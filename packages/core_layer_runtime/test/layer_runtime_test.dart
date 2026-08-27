@@ -10,6 +10,7 @@ import 'package:test/test.dart';
 class _SpySink {
   final List<DocumentCommand> commands = [];
   final List<CommandSource> sources = [];
+  final List<String> authors = [];
   CommandResult result = const CommandResult.applied(revision: 1);
 
   CommandResult call(
@@ -20,6 +21,7 @@ class _SpySink {
   }) {
     commands.add(command);
     sources.add(source);
+    authors.add(author);
     return result;
   }
 }
@@ -162,6 +164,135 @@ void main() {
       const layer = LayerModel(id: 'l', name: 'L', kind: LayerKind.vector);
       final result = r.createLayer(artboardId: 'nope', layer: layer);
       expect(result, isA<CommandRejected>());
+    });
+  });
+
+  // ------------------------------------------------------------------- M19
+  // Design-node structural movement (NDH-1, Form A): this runtime is the
+  // single authorized construction and emission site. It builds the frozen
+  // value and forwards it — the frozen engine owns every semantic.
+  group('design-node movement — the single authorized emission site', () {
+    test('emits one frozen MoveDesignNodeCommand with the given operands', () {
+      final spy = _SpySink();
+      final result = LayerRuntime(sink: spy.call).moveDesignNode(
+        artboardId: 'ab-1',
+        nodeId: 'node-9',
+        newParentId: 'parent-2',
+        index: 3,
+      );
+      expect(spy.commands, hasLength(1)); // one construction, one forward
+      final cmd = spy.commands.single as MoveDesignNodeCommand;
+      expect(cmd.artboardId, 'ab-1');
+      expect(cmd.nodeId, 'node-9');
+      expect(cmd.newParentId, 'parent-2');
+      expect(cmd.index, 3);
+      expect(result, spy.result); // CommandResult returned verbatim
+    });
+
+    test('sibling-list reorder keeps the parent and carries the new index', () {
+      final spy = _SpySink();
+      final r = LayerRuntime(sink: spy.call);
+      r.moveDesignNode(
+        artboardId: 'ab',
+        nodeId: 'n',
+        newParentId: 'p',
+        index: 0,
+      );
+      r.moveDesignNode(
+        artboardId: 'ab',
+        nodeId: 'n',
+        newParentId: 'p',
+        index: 2,
+      );
+      final first = spy.commands[0] as MoveDesignNodeCommand;
+      final second = spy.commands[1] as MoveDesignNodeCommand;
+      expect(first.newParentId, second.newParentId);
+      expect(first.index, 0);
+      expect(second.index, 2);
+    });
+
+    test('parent-changing movement carries the new parent', () {
+      final spy = _SpySink();
+      LayerRuntime(sink: spy.call).moveDesignNode(
+        artboardId: 'ab',
+        nodeId: 'leaf',
+        newParentId: 'other',
+        index: 1,
+      );
+      final cmd = spy.commands.single as MoveDesignNodeCommand;
+      expect(cmd.nodeId, 'leaf');
+      expect(cmd.newParentId, 'other');
+      expect(cmd.index, 1);
+    });
+
+    test('forwards the caller-provided source and author', () {
+      final spy = _SpySink();
+      LayerRuntime(sink: spy.call).moveDesignNode(
+        artboardId: 'ab',
+        nodeId: 'n',
+        newParentId: 'p',
+        index: 0,
+        source: CommandSource.tool,
+        author: 'panel',
+      );
+      expect(spy.sources.single, CommandSource.tool);
+      expect(spy.authors.single, 'panel');
+    });
+    test('identical intent builds an identical frozen command value', () {
+      final a = _SpySink();
+      final b = _SpySink();
+      LayerRuntime(sink: a.call).moveDesignNode(
+        artboardId: 'ab',
+        nodeId: 'n',
+        newParentId: 'p',
+        index: 4,
+      );
+      LayerRuntime(sink: b.call).moveDesignNode(
+        artboardId: 'ab',
+        nodeId: 'n',
+        newParentId: 'p',
+        index: 4,
+      );
+      expect(a.commands.single, b.commands.single); // deterministic value
+    });
+
+    test('emission holds no state and leaves layer emission intact', () {
+      final spy = _SpySink();
+      final r = LayerRuntime(sink: spy.call, activeLayerId: 'grp');
+      r.moveDesignNode(
+        artboardId: 'ab',
+        nodeId: 'n',
+        newParentId: 'p',
+        index: 0,
+      );
+      expect(r.activeLayerId, 'grp'); // no runtime state touched
+      r.moveLayer(
+        artboardId: 'ab',
+        layerId: 'leaf',
+        newParentId: 'root',
+        index: 0,
+      );
+      expect(spy.commands[1], isA<MoveLayerCommand>()); // layer family intact
+      expect(spy.commands, hasLength(2)); // no extra emission
+    });
+  });
+
+  group('design-node movement — forwarded to the real frozen pipeline', () {
+    test('rejection leaves document, history and dirty state inert', () {
+      final engine = DocumentEngine(document: _emptyDoc());
+      final before = engine.document;
+      final result = LayerRuntime(sink: engine.apply).moveDesignNode(
+        artboardId: 'no-such-artboard',
+        nodeId: 'n',
+        newParentId: 'p',
+        index: 0,
+      );
+      expect(result, isA<CommandRejected>()); // the frozen reducer decided
+      expect(engine.document, same(before)); // no mutation at all
+      expect(engine.document.history.entries, isEmpty); // no history entry
+      expect(engine.isDirty, isFalse);
+      expect(engine.canUndo, isFalse);
+      expect(engine.canRedo, isFalse);
     });
   });
 }

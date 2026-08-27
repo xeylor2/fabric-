@@ -36,6 +36,18 @@ typedef DocumentCommandSink =
 /// (reordering, deletion, inverse, locking, history) stays in the frozen
 /// `core_document` reducer (ADR-0014); all layer vocabulary stays in the
 /// frozen `core_layer` (ADR-0006). Both are reused exactly, never redefined.
+///
+/// **M19 / NDH-1 Form A — design-node structural-movement emission.**
+/// Product-owner governance authorized this runtime as the *single* owner of
+/// design-node structural-movement emission ([moveDesignNode]): it may build
+/// the frozen `DocumentCommand.moveDesignNode` value from presentation intent
+/// and forward it through the same [DocumentCommandSink]. That is an additive
+/// ownership extension and nothing more — no new command, model, sink or
+/// mutation entry, and no change to any responsibility above. Node semantics,
+/// locks, validation, history, inverses, revision and dirty state all stay
+/// inside the frozen `core_document` pipeline, and that package's node/layer
+/// separation is untouched: this runtime emits both command families, it
+/// merges neither.
 final class LayerRuntime {
   /// Creates a runtime that forwards commands through [sink] (bind to
   /// `DocumentEngine.apply`), optionally seeded with an [activeLayerId].
@@ -161,6 +173,41 @@ final class LayerRuntime {
       layerId: layerId,
       key: key,
       value: value,
+    ),
+    source: source,
+    author: author,
+  );
+
+  // ----------------------------------- design-node structural movement (M19)
+  // The authorized design-node emission surface (NDH-1, Form A). Same
+  // emit-and-forward discipline as the layer helpers above: build the frozen
+  // command value, forward it through the injected sink, return the frozen
+  // result verbatim.
+
+  /// Emits the frozen [MoveDesignNodeCommand] and forwards it to the document
+  /// runtime.
+  ///
+  /// Structural movement only: [newParentId] and [index] address the design
+  /// tree position, covering sibling-list reorder (same parent, new index) and
+  /// parent-changing movement (new parent, given index). There is no
+  /// coordinate operand — the frozen command carries none.
+  ///
+  /// The runtime builds the value and forwards it: no traversal, no
+  /// validation, no lock check, no history and no mutation happen here, and
+  /// the [CommandResult] is returned verbatim.
+  CommandResult moveDesignNode({
+    required String artboardId,
+    required String nodeId,
+    required String newParentId,
+    required int index,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.moveDesignNode(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      newParentId: newParentId,
+      index: index,
     ),
     source: source,
     author: author,
