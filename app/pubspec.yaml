@@ -44,6 +44,8 @@ dependencies:
     path: ../packages/core_geometry
   core_layer:
     path: ../packages/core_layer
+  core_layer_runtime:
+    path: ../packages/core_layer_runtime
   core_lock:
     path: ../packages/core_lock
   core_mask:

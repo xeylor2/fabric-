@@ -2,12 +2,12 @@ import 'package:core_workspace/core_workspace.dart';
 import 'package:feature_canvas_editor/feature_canvas_editor.dart';
 import 'package:feature_conversation/feature_conversation.dart';
 import 'package:feature_dashboard/feature_dashboard.dart';
-import 'package:feature_design_tree/feature_design_tree.dart';
 import 'package:feature_garment_library/feature_garment_library.dart';
 import 'package:feature_inspector/feature_inspector.dart';
 import 'package:feature_production/feature_production.dart';
 import 'package:feature_projects/feature_projects.dart';
 import 'package:feature_settings/feature_settings.dart';
+import 'package:febric/workspace/design_tree_panel.dart';
 import 'package:flutter/material.dart';
 
 /// One workspace module: shell destination + route + page factory.
@@ -67,7 +67,7 @@ final List<AppDestination> appDestinations = [
       selectedIcon: Icons.account_tree,
     ),
     path: '/design-tree',
-    pageBuilder: () => const DesignTreePage(),
+    pageBuilder: () => const DesignTreePanel(),
   ),
   AppDestination(
     destination: const WorkspaceDestination(

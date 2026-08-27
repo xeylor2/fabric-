@@ -4,9 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
-  testWidgets('all nine module routes render their placeholder', (
-    tester,
-  ) async {
+  testWidgets('all nine module routes render their surface', (tester) async {
     await pumpFebricApp(tester);
     final router = routerOf(tester);
 
@@ -14,7 +12,6 @@ void main() {
       '/dashboard': 'Coming in M10',
       '/projects': 'Coming in M11',
       '/library': 'Coming in M3',
-      '/design-tree': 'Coming in M2',
       '/canvas': 'Coming in M4',
       '/conversation': 'Coming in M9',
       '/inspector': 'Coming in M7',
@@ -31,6 +28,12 @@ void main() {
       );
     }
 
+    // Design Tree is live since M19: the real design tree, not a placeholder.
+    router.go('/design-tree');
+    await tester.pumpAndSettle();
+    expect(find.text('Session'), findsOneWidget, reason: 'design tree root');
+    expect(find.text('Motif A'), findsOneWidget, reason: 'design tree leaf');
+
     router.go('/settings');
     await tester.pumpAndSettle();
     expect(find.text('APPEARANCE'), findsOneWidget);
@@ -46,7 +49,7 @@ void main() {
 
     await tester.tap(find.text('Design Tree'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Coming in M2'), findsOneWidget);
+    expect(find.text('Motif A'), findsOneWidget);
 
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
