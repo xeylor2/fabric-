@@ -1,6 +1,7 @@
 import 'package:core_document/core_document.dart';
 import 'package:core_layer/core_layer.dart';
 import 'package:core_layer_runtime/core_layer_runtime.dart';
+import 'package:core_textile/core_textile.dart';
 import 'package:test/test.dart';
 
 // -------------------------------------------------------------------- spy
@@ -293,6 +294,145 @@ void main() {
       expect(engine.isDirty, isFalse);
       expect(engine.canUndo, isFalse);
       expect(engine.canRedo, isFalse);
+    });
+  });
+  // ------------------------------------------------------------------- M21
+  // Design-node structural/attribute editing: the same single authorized
+  // emission surface, extended by product-owner governance to the remaining
+  // already-frozen design-tree commands. One construction, one forward, zero
+  // added semantics.
+  group('design-node editing — the same authorized emission site', () {
+    const node = DesignNode(
+      id: 'n-new',
+      name: 'New',
+      type: DesignNodeType.element,
+    );
+
+    test('createDesignNode emits a CreateDesignNodeCommand', () {
+      final spy = _SpySink();
+      final result = LayerRuntime(sink: spy.call).createDesignNode(
+        artboardId: 'ab-1',
+        node: node,
+        parentNodeId: 'p',
+        index: 2,
+      );
+      expect(spy.commands, hasLength(1));
+      final cmd = spy.commands.single as CreateDesignNodeCommand;
+      expect(cmd.artboardId, 'ab-1');
+      expect(cmd.parentNodeId, 'p');
+      expect(cmd.node, node); // the caller's frozen node, unmodified
+      expect(cmd.index, 2);
+      expect(result, spy.result);
+    });
+
+    test('deleteDesignNode emits a DeleteDesignNodeCommand', () {
+      final spy = _SpySink();
+      LayerRuntime(
+        sink: spy.call,
+      ).deleteDesignNode(artboardId: 'ab', nodeId: 'n');
+      final cmd = spy.commands.single as DeleteDesignNodeCommand;
+      expect(cmd.artboardId, 'ab');
+      expect(cmd.nodeId, 'n');
+    });
+
+    test('renameDesignNode forwards the name verbatim, empty included', () {
+      final spy = _SpySink();
+      final r = LayerRuntime(sink: spy.call);
+      r.renameDesignNode(artboardId: 'ab', nodeId: 'n', name: 'Renamed');
+      // An empty name is NOT filtered here — the frozen reducer rejects it.
+      r.renameDesignNode(artboardId: 'ab', nodeId: 'n', name: '  ');
+      expect((spy.commands[0] as RenameDesignNodeCommand).name, 'Renamed');
+      expect((spy.commands[1] as RenameDesignNodeCommand).name, '  ');
+    });
+
+    test('setNodeVisibility emits both directions', () {
+      final spy = _SpySink();
+      final r = LayerRuntime(sink: spy.call);
+      r.setNodeVisibility(artboardId: 'ab', nodeId: 'n', visible: false);
+      r.setNodeVisibility(artboardId: 'ab', nodeId: 'n', visible: true);
+      expect((spy.commands[0] as SetNodeVisibilityCommand).visible, isFalse);
+      expect((spy.commands[1] as SetNodeVisibilityCommand).visible, isTrue);
+    });
+
+    test('setNodeLocked emits both directions', () {
+      final spy = _SpySink();
+      final r = LayerRuntime(sink: spy.call);
+      r.setNodeLocked(artboardId: 'ab', nodeId: 'n', locked: true);
+      r.setNodeLocked(artboardId: 'ab', nodeId: 'n', locked: false);
+      expect((spy.commands[0] as SetNodeLockedCommand).locked, isTrue);
+      expect((spy.commands[1] as SetNodeLockedCommand).locked, isFalse);
+    });
+
+    test('setNodeMetadata emits a SetNodeMetadataCommand (null clears)', () {
+      final spy = _SpySink();
+      final r = LayerRuntime(sink: spy.call);
+      r.setNodeMetadata(artboardId: 'ab', nodeId: 'n', key: 'k', value: 7);
+      r.setNodeMetadata(artboardId: 'ab', nodeId: 'n', key: 'k');
+      expect((spy.commands[0] as SetNodeMetadataCommand).value, 7);
+      expect((spy.commands[1] as SetNodeMetadataCommand).value, isNull);
+    });
+
+    test('duplicateDesignNode carries the caller-cloned subtree', () {
+      final spy = _SpySink();
+      LayerRuntime(sink: spy.call).duplicateDesignNode(
+        artboardId: 'ab',
+        sourceNodeId: 'src',
+        duplicate: node,
+      );
+      final cmd = spy.commands.single as DuplicateDesignNodeCommand;
+      expect(cmd.sourceNodeId, 'src');
+      expect(cmd.duplicate, node); // no cloning happens in the runtime
+    });
+
+    test('every helper forwards the caller source/author and holds no state', () {
+      final spy = _SpySink();
+      final r = LayerRuntime(sink: spy.call, activeLayerId: 'grp');
+      r.createDesignNode(
+        artboardId: 'ab',
+        node: node,
+        source: CommandSource.tool,
+        author: 'panel',
+      );
+      r.setNodeMetadata(artboardId: 'ab', nodeId: 'n', key: 'k', value: 1);
+      expect(spy.sources.first, CommandSource.tool);
+      expect(spy.authors.first, 'panel');
+      expect(r.activeLayerId, 'grp'); // no runtime state touched
+      expect(spy.commands, hasLength(2)); // exactly one emission per call
+    });
+
+    test('identical intent builds identical frozen command values', () {
+      final a = _SpySink();
+      final b = _SpySink();
+      LayerRuntime(
+        sink: a.call,
+      ).setNodeVisibility(artboardId: 'ab', nodeId: 'n', visible: false);
+      LayerRuntime(
+        sink: b.call,
+      ).setNodeVisibility(artboardId: 'ab', nodeId: 'n', visible: false);
+      expect(a.commands.single, b.commands.single);
+    });
+
+    test('all seven reach the real frozen pipeline and are rejected inert', () {
+      final engine = DocumentEngine(document: _emptyDoc());
+      final before = engine.document;
+      final r = LayerRuntime(sink: engine.apply);
+      final results = <CommandResult>[
+        r.createDesignNode(artboardId: 'nope', node: node),
+        r.deleteDesignNode(artboardId: 'nope', nodeId: 'n'),
+        r.renameDesignNode(artboardId: 'nope', nodeId: 'n', name: 'x'),
+        r.setNodeVisibility(artboardId: 'nope', nodeId: 'n', visible: false),
+        r.setNodeLocked(artboardId: 'nope', nodeId: 'n', locked: true),
+        r.setNodeMetadata(artboardId: 'nope', nodeId: 'n', key: 'k', value: 1),
+        r.duplicateDesignNode(
+          artboardId: 'nope',
+          sourceNodeId: 'n',
+          duplicate: node,
+        ),
+      ];
+      expect(results, everyElement(isA<CommandRejected>()));
+      expect(engine.document, same(before));
+      expect(engine.document.history.entries, isEmpty);
+      expect(engine.isDirty, isFalse);
     });
   });
 }

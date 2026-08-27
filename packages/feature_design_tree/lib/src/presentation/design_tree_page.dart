@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 
 /// The Design Tree panel.
 ///
-/// Presentation boundary (M19/M20): this page is an **intent source only**. It
-/// renders the flattened rows the composition root supplies — the semantic
+/// Presentation boundary (M19/M20/M21): this page is an **intent source only**.
+/// It renders the flattened rows the composition root supplies — the semantic
 /// design tree and, since M20, the compositing layer tree — and reports what
 /// the user asked for through the callbacks. It never builds a
 /// `DocumentCommand`, never touches document state, and performs no lock,
-/// validation or history logic: those stay inside the frozen document
-/// pipeline. Undo/redo are the engine's own mechanism, invoked through
+/// validation, capability or history logic: those stay inside the frozen
+/// document pipeline. Undo/redo are the engine's own mechanism, invoked through
 /// [onUndo] / [onRedo].
 ///
 /// Unwired (no [rows] or no [onMoveNode]) it stays the M1 module placeholder.
@@ -29,13 +29,30 @@ class DesignTreePage extends StatefulWidget {
     this.onLayerMove,
     this.onLayerRename,
     this.onLayerMetadata,
+    this.onNodeAdd,
+    this.onNodeDelete,
+    this.onNodeRename,
+    this.onNodeDuplicate,
+    this.onNodeVisibility,
+    this.onNodeLocked,
+    this.onNodeMetadata,
   });
 
   /// Flattened design-tree rows: node id, display label, depth, the parent that
-  /// owns it and its sibling index. Primitives only — no document type crosses
-  /// into presentation.
+  /// owns it, its sibling index, its visibility, its node-lock flag and a
+  /// pre-rendered metadata line (null when empty). Primitives only — no
+  /// document type crosses into presentation.
   final List<
-    ({String id, String label, int depth, String? parentId, int index})
+    ({
+      String id,
+      String label,
+      int depth,
+      String? parentId,
+      int index,
+      bool visible,
+      bool locked,
+      String? metadata,
+    })
   >?
   rows;
 
@@ -84,6 +101,29 @@ class DesignTreePage extends StatefulWidget {
   final void Function(String layerId, String key, Object? value)?
   onLayerMetadata;
 
+  /// Reports a new child design node under the given parent, with the entered
+  /// name (M21).
+  final void Function(String parentNodeId, String name)? onNodeAdd;
+
+  /// Reports a design-node deletion.
+  final void Function(String nodeId)? onNodeDelete;
+
+  /// Reports a design-node rename with the entered name.
+  final void Function(String nodeId, String name)? onNodeRename;
+
+  /// Reports a design-node duplication (inserted as the next sibling).
+  final void Function(String nodeId)? onNodeDuplicate;
+
+  /// Reports the requested visibility of a design node.
+  final void Function(String nodeId, bool visible)? onNodeVisibility;
+
+  /// Reports the requested node-lock flag of a design node.
+  final void Function(String nodeId, bool locked)? onNodeLocked;
+
+  /// Reports one design-node metadata entry set (or cleared, when value is
+  /// null).
+  final void Function(String nodeId, String key, Object? value)? onNodeMetadata;
+
   @override
   State<DesignTreePage> createState() => _DesignTreePageState();
 }
@@ -92,12 +132,25 @@ class _DesignTreePageState extends State<DesignTreePage> {
   final TextEditingController _name = TextEditingController();
   final TextEditingController _metaKey = TextEditingController();
   final TextEditingController _metaValue = TextEditingController();
+  final TextEditingController _nodeName = TextEditingController();
+  final TextEditingController _nodeMetaKey = TextEditingController();
+  final TextEditingController _nodeMetaValue = TextEditingController();
+
+  /// Keeps five controls inside a narrow panel without overflow. Cosmetic only:
+  /// keys, callbacks and enablement of the M19 movement buttons are unchanged.
+  static const BoxConstraints _dense = BoxConstraints.tightFor(
+    width: 34,
+    height: 34,
+  );
 
   @override
   void dispose() {
     _name.dispose();
     _metaKey.dispose();
     _metaValue.dispose();
+    _nodeName.dispose();
+    _nodeMetaKey.dispose();
+    _nodeMetaValue.dispose();
     super.dispose();
   }
 
@@ -121,7 +174,11 @@ class _DesignTreePageState extends State<DesignTreePage> {
         const Divider(height: 1),
         Expanded(
           child: ListView(
-            children: [..._nodeRows(rows, onMove), ..._layerSection(context)],
+            children: [
+              ..._nodeFields(context),
+              ..._nodeRows(rows, onMove),
+              ..._layerSection(context),
+            ],
           ),
         ),
       ],
@@ -161,16 +218,81 @@ class _DesignTreePageState extends State<DesignTreePage> {
     );
   }
 
+  /// The M21 operand fields for design-node editing. Their contents are read
+  /// when a row menu opens, so the operands are always what the user entered.
+  List<Widget> _nodeFields(BuildContext context) {
+    if (widget.onNodeAdd == null &&
+        widget.onNodeRename == null &&
+        widget.onNodeMetadata == null) {
+      return const <Widget>[];
+    }
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+        child: Text(
+          'Design tree',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+      ),
+      _field('node-name-field', _nodeName, 'Node name'),
+      _field('node-meta-key-field', _nodeMetaKey, 'Node metadata key'),
+      _field('node-meta-value-field', _nodeMetaValue, 'Node metadata value'),
+    ];
+  }
+
+  Widget _field(String key, TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: TextField(
+        key: Key(key),
+        controller: controller,
+        decoration: InputDecoration(labelText: label, isDense: true),
+      ),
+    );
+  }
+
   List<Widget> _nodeRows(
-    List<({String id, String label, int depth, String? parentId, int index})>
+    List<
+      ({
+        String id,
+        String label,
+        int depth,
+        String? parentId,
+        int index,
+        bool visible,
+        bool locked,
+        String? metadata,
+      })
+    >
     rows,
     void Function(String nodeId, String newParentId, int index) onMove,
   ) => [for (final row in rows) _nodeRow(rows, row, onMove)];
 
   Widget _nodeRow(
-    List<({String id, String label, int depth, String? parentId, int index})>
+    List<
+      ({
+        String id,
+        String label,
+        int depth,
+        String? parentId,
+        int index,
+        bool visible,
+        bool locked,
+        String? metadata,
+      })
+    >
     rows,
-    ({String id, String label, int depth, String? parentId, int index}) row,
+    ({
+      String id,
+      String label,
+      int depth,
+      String? parentId,
+      int index,
+      bool visible,
+      bool locked,
+      String? metadata,
+    })
+    row,
     void Function(String nodeId, String newParentId, int index) onMove,
   ) {
     final parentId = row.parentId;
@@ -197,6 +319,7 @@ class _DesignTreePageState extends State<DesignTreePage> {
     return ListTile(
       contentPadding: EdgeInsets.only(left: 12 + row.depth * 16, right: 8),
       title: Text(row.label),
+      subtitle: _nodeSubtitle(row.id, row.visible, row.locked, row.metadata),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -204,6 +327,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
             key: Key('move-up-${row.id}'),
             icon: const Icon(Icons.arrow_upward),
             tooltip: 'Move up',
+            padding: EdgeInsets.zero,
+            constraints: _dense,
             onPressed: parentId != null && row.index > 0
                 ? () => onMove(row.id, parentId, row.index - 1)
                 : null,
@@ -212,6 +337,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
             key: Key('move-down-${row.id}'),
             icon: const Icon(Icons.arrow_downward),
             tooltip: 'Move down',
+            padding: EdgeInsets.zero,
+            constraints: _dense,
             onPressed: parentId != null && row.index < siblings - 1
                 ? () => onMove(row.id, parentId, row.index + 1)
                 : null,
@@ -220,6 +347,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
             key: Key('indent-${row.id}'),
             icon: const Icon(Icons.subdirectory_arrow_right),
             tooltip: 'Move under previous sibling',
+            padding: EdgeInsets.zero,
+            constraints: _dense,
             onPressed: previousSiblingId != null
                 ? () => onMove(row.id, previousSiblingId!, adoptIndex)
                 : null,
@@ -228,13 +357,131 @@ class _DesignTreePageState extends State<DesignTreePage> {
             key: Key('outdent-${row.id}'),
             icon: const Icon(Icons.arrow_back),
             tooltip: 'Move out to parent level',
+            padding: EdgeInsets.zero,
+            constraints: _dense,
             onPressed: grandParentId != null
                 ? () => onMove(row.id, grandParentId!, parentIndex + 1)
                 : null,
           ),
+          ..._nodeMenu(row),
         ],
       ),
     );
+  }
+
+  /// Renders the node's own state: hidden / locked markers and the metadata
+  /// line, exactly as supplied. Null when there is nothing to show.
+  Widget? _nodeSubtitle(
+    String id,
+    bool visible,
+    bool locked,
+    String? metadata,
+  ) {
+    final parts = <String>[
+      if (!visible) 'hidden',
+      if (locked) 'locked',
+      if (metadata != null) metadata,
+    ];
+    if (parts.isEmpty) {
+      return null;
+    }
+    return Text(parts.join(' · '), key: Key('node-state-$id'));
+  }
+
+  /// The M21 design-node action menu for one row. Enablement uses only the
+  /// supplied projection (a callback exists; the root has no parent). Node
+  /// grammar, the capability matrix and node-lock rules are NOT evaluated here
+  /// — the engine decides and its `CommandResult` is shown in the toolbar.
+  List<Widget> _nodeMenu(
+    ({
+      String id,
+      String label,
+      int depth,
+      String? parentId,
+      int index,
+      bool visible,
+      bool locked,
+      String? metadata,
+    })
+    row,
+  ) {
+    final wired =
+        widget.onNodeAdd != null ||
+        widget.onNodeRename != null ||
+        widget.onNodeDuplicate != null ||
+        widget.onNodeVisibility != null ||
+        widget.onNodeLocked != null ||
+        widget.onNodeMetadata != null ||
+        widget.onNodeDelete != null;
+    if (!wired) {
+      return const <Widget>[];
+    }
+    final hasParent = row.parentId != null;
+    return [
+      PopupMenuButton<void>(
+        key: Key('node-menu-${row.id}'),
+        tooltip: 'Node actions',
+        padding: EdgeInsets.zero,
+        iconSize: 20,
+        itemBuilder: (context) {
+          final name = _nodeName.text.trim().isEmpty
+              ? 'Element'
+              : _nodeName.text.trim();
+          final metaKey = _nodeMetaKey.text.trim();
+          return [
+            PopupMenuItem<void>(
+              key: Key('node-add-${row.id}'),
+              enabled: widget.onNodeAdd != null,
+              onTap: () => widget.onNodeAdd!(row.id, name),
+              child: const Text('Add child node'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-rename-${row.id}'),
+              enabled: widget.onNodeRename != null,
+              onTap: () => widget.onNodeRename!(row.id, name),
+              child: const Text('Rename'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-duplicate-${row.id}'),
+              enabled: widget.onNodeDuplicate != null && hasParent,
+              onTap: () => widget.onNodeDuplicate!(row.id),
+              child: const Text('Duplicate'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-visibility-${row.id}'),
+              enabled: widget.onNodeVisibility != null,
+              onTap: () => widget.onNodeVisibility!(row.id, !row.visible),
+              child: Text(row.visible ? 'Hide' : 'Show'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-lock-${row.id}'),
+              enabled: widget.onNodeLocked != null,
+              onTap: () => widget.onNodeLocked!(row.id, !row.locked),
+              child: Text(row.locked ? 'Unlock node' : 'Lock node'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-meta-set-${row.id}'),
+              enabled: widget.onNodeMetadata != null && metaKey.isNotEmpty,
+              onTap: () =>
+                  widget.onNodeMetadata!(row.id, metaKey, _nodeMetaValue.text),
+              child: const Text('Set metadata'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-meta-clear-${row.id}'),
+              enabled: widget.onNodeMetadata != null && metaKey.isNotEmpty,
+              onTap: () => widget.onNodeMetadata!(row.id, metaKey, null),
+              child: const Text('Clear metadata'),
+            ),
+            PopupMenuItem<void>(
+              key: Key('node-delete-${row.id}'),
+              enabled: widget.onNodeDelete != null && hasParent,
+              onTap: () => widget.onNodeDelete!(row.id),
+              child: const Text('Delete'),
+            ),
+          ];
+        },
+      ),
+    ];
   }
 
   List<Widget> _layerSection(BuildContext context) {

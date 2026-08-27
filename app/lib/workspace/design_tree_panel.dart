@@ -3,7 +3,7 @@ import 'package:febric/di/design_tree_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Composition-root adapter (M19): binds the [DesignTreeSession] to the
+/// Composition-root adapter (M19/M20/M21): binds the [DesignTreeSession] to the
 /// presentation surface. It hands over the read-only projection and the intent
 /// callbacks — it constructs no `DocumentCommand` and holds no document state.
 class DesignTreePanel extends ConsumerWidget {
@@ -28,6 +28,13 @@ class DesignTreePanel extends ConsumerWidget {
         onLayerMove: session.moveLayer,
         onLayerRename: session.renameLayer,
         onLayerMetadata: session.setLayerMetadata,
+        onNodeAdd: session.createNode,
+        onNodeDelete: session.deleteNode,
+        onNodeRename: session.renameNode,
+        onNodeDuplicate: session.duplicateNode,
+        onNodeVisibility: session.setNodeVisibility,
+        onNodeLocked: session.setNodeLocked,
+        onNodeMetadata: session.setNodeMetadata,
       ),
     );
   }

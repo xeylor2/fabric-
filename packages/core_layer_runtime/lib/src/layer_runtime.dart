@@ -1,5 +1,6 @@
 import 'package:core_document/core_document.dart';
 import 'package:core_layer/core_layer.dart';
+import 'package:core_textile/core_textile.dart';
 
 /// A sink that forwards a frozen [DocumentCommand] into the document runtime
 /// and returns its [CommandResult].
@@ -48,6 +49,19 @@ typedef DocumentCommandSink =
 /// inside the frozen `core_document` pipeline, and that package's node/layer
 /// separation is untouched: this runtime emits both command families, it
 /// merges neither.
+///
+/// **M21 Form A — design-node structural/attribute editing emission.**
+/// Product-owner governance extended that *same* ownership surface to the
+/// remaining already-frozen design-tree commands: [createDesignNode],
+/// [deleteDesignNode], [renameDesignNode], [setNodeVisibility],
+/// [setNodeLocked], [setNodeMetadata] and [duplicateDesignNode]. It is an
+/// ownership extension only, on the identical emit-and-forward discipline: the
+/// commands, their reducer behaviour and their inverses were already frozen
+/// (ADR-0015); this runtime adds no semantics to any of them. Node grammar and
+/// the capability matrix (Architecture V2 §4.2) stay engine-enforced — this
+/// runtime never pre-empts a reducer decision, and [duplicateDesignNode]
+/// carries the caller's pre-cloned subtree exactly as the frozen command
+/// requires (`DesignTreeOps.cloneWithIds`).
 final class LayerRuntime {
   /// Creates a runtime that forwards commands through [sink] (bind to
   /// `DocumentEngine.apply`), optionally seeded with an [activeLayerId].
@@ -208,6 +222,142 @@ final class LayerRuntime {
       nodeId: nodeId,
       newParentId: newParentId,
       index: index,
+    ),
+    source: source,
+    author: author,
+  );
+
+  // ------------------------------ design-node structural/attribute editing
+  // M21 Form A. Identical discipline to every helper above: build one frozen
+  // command value from primitive operands, forward it through the injected
+  // sink, return the frozen result verbatim. No traversal, no validation, no
+  // capability check, no lock check, no history and no mutation happen here.
+
+  /// Emits the frozen [CreateDesignNodeCommand] and forwards it.
+  /// [parentNodeId] null targets the artboard design-tree root; [index] null
+  /// appends. The caller supplies the frozen [DesignNode] — this runtime
+  /// neither builds nor mutates node content.
+  CommandResult createDesignNode({
+    required String artboardId,
+    required DesignNode node,
+    String? parentNodeId,
+    int? index,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.createDesignNode(
+      artboardId: artboardId,
+      parentNodeId: parentNodeId,
+      node: node,
+      index: index,
+    ),
+    source: source,
+    author: author,
+  );
+
+  /// Emits the frozen [DeleteDesignNodeCommand] and forwards it.
+  CommandResult deleteDesignNode({
+    required String artboardId,
+    required String nodeId,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.deleteDesignNode(artboardId: artboardId, nodeId: nodeId),
+    source: source,
+    author: author,
+  );
+
+  /// Emits the frozen [RenameDesignNodeCommand] and forwards it. The empty-name
+  /// and capability rules are the frozen reducer's, not this runtime's.
+  CommandResult renameDesignNode({
+    required String artboardId,
+    required String nodeId,
+    required String name,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.renameDesignNode(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      name: name,
+    ),
+    source: source,
+    author: author,
+  );
+
+  /// Emits the frozen [SetNodeVisibilityCommand] and forwards it.
+  CommandResult setNodeVisibility({
+    required String artboardId,
+    required String nodeId,
+    required bool visible,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.setNodeVisibility(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      visible: visible,
+    ),
+    source: source,
+    author: author,
+  );
+
+  /// Emits the frozen [SetNodeLockedCommand] and forwards it. This is the
+  /// node-level lock flag of the frozen command vocabulary — the authoritative
+  /// Lock Engine is untouched and still runs first inside the engine.
+  CommandResult setNodeLocked({
+    required String artboardId,
+    required String nodeId,
+    required bool locked,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.setNodeLocked(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      locked: locked,
+    ),
+    source: source,
+    author: author,
+  );
+
+  /// Emits the frozen [SetNodeMetadataCommand] and forwards it. A null [value]
+  /// removes the entry (frozen reducer semantics).
+  CommandResult setNodeMetadata({
+    required String artboardId,
+    required String nodeId,
+    required String key,
+    Object? value,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.setNodeMetadata(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      key: key,
+      value: value,
+    ),
+    source: source,
+    author: author,
+  );
+
+  /// Emits the frozen [DuplicateDesignNodeCommand] and forwards it.
+  ///
+  /// The frozen command carries a pre-cloned subtree with fresh ids (built by
+  /// the caller through `DesignTreeOps.cloneWithIds`); the reducer inserts it as
+  /// the next sibling of [sourceNodeId]. This runtime clones nothing and
+  /// generates no id.
+  CommandResult duplicateDesignNode({
+    required String artboardId,
+    required String sourceNodeId,
+    required DesignNode duplicate,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.duplicateDesignNode(
+      artboardId: artboardId,
+      sourceNodeId: sourceNodeId,
+      duplicate: duplicate,
     ),
     source: source,
     author: author,

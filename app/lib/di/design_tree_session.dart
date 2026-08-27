@@ -38,6 +38,11 @@ class DesignTreeSession {
   /// frozen reducer rejects a duplicate id.
   final IdGenerator _layerIds = SequentialIdGenerator(prefix: 'layer');
 
+  /// Frozen id seam for new and duplicated design nodes (M21). The same
+  /// generator feeds `DesignTreeOps.cloneWithIds`, which is the frozen clone
+  /// seam the duplicate command requires.
+  final IdGenerator _nodeIds = SequentialIdGenerator(prefix: 'node');
+
   /// Bumped after every engine interaction so presentation re-reads state.
   final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
@@ -50,12 +55,40 @@ class DesignTreeSession {
 
   String get artboardId => engine.document.artboards.first.id;
 
-  /// Flattened rows for the panel: id, label, depth, parent id and sibling
-  /// index. A read-only projection of the frozen document.
-  List<({String id, String label, int depth, String? parentId, int index})>
+  /// The frozen design-tree root of the session artboard. Read-only.
+  DesignNode get _designRoot =>
+      engine.document.artboards.first.designTreeRoot;
+
+  /// Flattened rows for the panel: id, label, depth, parent id, sibling index
+  /// and — since M21 — the node's visibility, node-lock flag and a rendered
+  /// metadata line (null when the node has none). A read-only projection of the
+  /// frozen document; primitives only.
+  List<
+    ({
+      String id,
+      String label,
+      int depth,
+      String? parentId,
+      int index,
+      bool visible,
+      bool locked,
+      String? metadata,
+    })
+  >
   get rows {
     final out =
-        <({String id, String label, int depth, String? parentId, int index})>[];
+        <
+          ({
+            String id,
+            String label,
+            int depth,
+            String? parentId,
+            int index,
+            bool visible,
+            bool locked,
+            String? metadata,
+          })
+        >[];
     void walk(DesignNode node, int depth, String? parentId, int index) {
       out.add((
         id: node.id,
@@ -63,13 +96,18 @@ class DesignTreeSession {
         depth: depth,
         parentId: parentId,
         index: index,
+        visible: node.visible,
+        locked: node.locked,
+        metadata: node.metadata.isEmpty
+            ? null
+            : node.metadata.entries.map((e) => '${e.key}=${e.value}').join('; '),
       ));
       for (var i = 0; i < node.children.length; i++) {
         walk(node.children[i], depth + 1, node.id, i);
       }
     }
 
-    walk(engine.document.artboards.first.designTreeRoot, 0, null, 0);
+    walk(_designRoot, 0, null, 0);
     return out;
   }
 
@@ -83,6 +121,93 @@ class DesignTreeSession {
     );
     _record(result);
     return result;
+  }
+
+  // --------------------------------- design-node structural editing (M21)
+  // Same discipline as every path above: the composition root forwards
+  // primitive operands (plus, where the frozen command demands it, a frozen
+  // node value built from frozen seams), the authorized owner builds the
+  // command, and the engine does everything else. No DocumentCommand is
+  // constructed here, and no reducer decision is pre-empted: node grammar, the
+  // capability matrix, empty-name rejection and node-lock rejection all stay
+  // engine-owned.
+
+  /// Adds a child design node under [parentNodeId] (appended). The type is the
+  /// frozen [DesignNodeType.element]; no type vocabulary is exposed or extended.
+  CommandResult createNode(String parentNodeId, String name) => _record(
+    _owner.createDesignNode(
+      artboardId: artboardId,
+      node: DesignNode(
+        id: _nodeIds.next(),
+        name: name,
+        type: DesignNodeType.element,
+      ),
+      parentNodeId: parentNodeId,
+    ),
+  );
+
+  CommandResult deleteNode(String nodeId) =>
+      _record(_owner.deleteDesignNode(artboardId: artboardId, nodeId: nodeId));
+
+  CommandResult renameNode(String nodeId, String name) => _record(
+    _owner.renameDesignNode(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      name: name,
+    ),
+  );
+
+  CommandResult setNodeVisibility(String nodeId, bool visible) => _record(
+    _owner.setNodeVisibility(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      visible: visible,
+    ),
+  );
+
+  CommandResult setNodeLocked(String nodeId, bool locked) => _record(
+    _owner.setNodeLocked(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      locked: locked,
+    ),
+  );
+
+  /// Sets or clears one open metadata entry on a design node — a null [value]
+  /// clears it (frozen reducer semantics). No metadata key vocabulary exists.
+  CommandResult setNodeMetadata(String nodeId, String key, Object? value) =>
+      _record(
+        _owner.setNodeMetadata(
+          artboardId: artboardId,
+          nodeId: nodeId,
+          key: key,
+          value: value,
+        ),
+      );
+
+  /// Duplicates a design node as its next sibling.
+  ///
+  /// The frozen command carries a pre-cloned subtree with fresh ids, so the
+  /// clone is built here through the frozen `DesignTreeOps.cloneWithIds` seam
+  /// fed by the frozen [IdGenerator]. When the source id is absent from the
+  /// frozen tree there is nothing to clone; a fresh well-formed node is passed
+  /// and the frozen reducer rejects on the missing source *before* the operand
+  /// is examined, so the rejection stays engine-owned and nothing is inserted.
+  CommandResult duplicateNode(String sourceNodeId) {
+    final source = _designRoot.findById(sourceNodeId);
+    return _record(
+      _owner.duplicateDesignNode(
+        artboardId: artboardId,
+        sourceNodeId: sourceNodeId,
+        duplicate: source == null
+            ? DesignNode(
+                id: _nodeIds.next(),
+                name: '',
+                type: DesignNodeType.element,
+              )
+            : DesignTreeOps.cloneWithIds(source, _nodeIds),
+      ),
+    );
   }
 
   // ------------------------------------------- layer structural editing (M20)
