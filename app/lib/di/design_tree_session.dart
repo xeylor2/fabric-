@@ -1,3 +1,4 @@
+import 'package:core_asset/core_asset.dart';
 import 'package:core_common/core_common.dart';
 import 'package:core_document/core_document.dart';
 import 'package:core_garment/core_garment.dart';
@@ -6,6 +7,7 @@ import 'package:core_layer/core_layer.dart';
 import 'package:core_layer_runtime/core_layer_runtime.dart';
 import 'package:core_textile/core_textile.dart';
 import 'package:febric/di/garment_content.dart';
+import 'package:febric/di/motif_artwork.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -51,6 +53,16 @@ class DesignTreeSession {
   /// collision-free (the frozen "ids are the caller's namespace" doctrine).
   final IdGenerator _garmentIds = SequentialIdGenerator(prefix: 'garment');
 
+  /// Frozen id seam for imported artwork assets. The frozen reducer rejects a
+  /// duplicate id, so identity stays the caller's namespace here too.
+  final IdGenerator _assetIds = SequentialIdGenerator(prefix: 'asset');
+
+  /// The frozen content-addressed byte store (ADR-0016 rule 2): uploaded
+  /// artwork bytes live here exactly once and nowhere else. The document
+  /// carries identity + hash only, so no second representation of the artwork
+  /// exists and nothing is ever flattened into a node.
+  final AssetContentStore artworkStore = InMemoryAssetContentStore();
+
   /// The frozen Library registry, loaded with the launch garment schemas at
   /// the composition root. Content is injected, never shipped by the engine.
   final GarmentTemplateRegistry _garments = launchGarmentRegistry();
@@ -73,8 +85,11 @@ class DesignTreeSession {
 
   /// Flattened rows for the panel: id, label, depth, parent id, sibling index
   /// and — since M21 — the node's visibility, node-lock flag and a rendered
-  /// metadata line (null when the node has none). A read-only projection of the
-  /// frozen document; primitives only.
+  /// metadata line (null when the node has none). The motif-artwork stage adds
+  /// two derived flags read off the frozen metadata carriers: whether the node
+  /// is a printed motif (`object_type`) and whether it already references
+  /// artwork (`asset_id`). A read-only projection of the frozen document;
+  /// primitives only.
   List<
     ({
       String id,
@@ -85,6 +100,8 @@ class DesignTreeSession {
       bool visible,
       bool locked,
       String? metadata,
+      bool motif,
+      bool hasArtwork,
     })
   >
   get rows {
@@ -99,6 +116,8 @@ class DesignTreeSession {
             bool visible,
             bool locked,
             String? metadata,
+            bool motif,
+            bool hasArtwork,
           })
         >[];
     void walk(DesignNode node, int depth, String? parentId, int index) {
@@ -113,6 +132,9 @@ class DesignTreeSession {
         metadata: node.metadata.isEmpty
             ? null
             : node.metadata.entries.map((e) => '${e.key}=${e.value}').join('; '),
+        motif: _isMotif(node),
+        // The frozen ADR-0016 reader, not a re-implementation of the key.
+        hasArtwork: NodeAssetBinding.assetIdOf(node) != null,
       ));
       for (var i = 0; i < node.children.length; i++) {
         walk(node.children[i], depth + 1, node.id, i);
@@ -122,6 +144,12 @@ class DesignTreeSession {
     walk(_designRoot, 0, null, 0);
     return out;
   }
+
+  /// Whether [node] is a printed motif, by the frozen `object_type`
+  /// classification carrier — the same key the previous stage bound and the
+  /// render tier already reads (ADR-0019).
+  static bool _isMotif(DesignNode node) =>
+      node.metadata['object_type'] == TextileObjectType.motif.wireName;
 
   /// Presentation intent → the authorized owner. Nothing is constructed here.
   CommandResult moveNode(String nodeId, String newParentId, int index) {
@@ -385,6 +413,144 @@ class DesignTreeSession {
       parentNodeId: parentNodeId,
     ),
   );
+
+  // ------------------------------- motif artwork upload / replacement (stage)
+  // The frozen ADR-0016 composition, reused end to end and nothing more:
+  //
+  //   artwork bytes → frozen Sha256ContentHasher (pure, mutates nothing)
+  //   → LayerRuntime.importAsset  (frozen `importAsset`, the registration)
+  //   → LayerRuntime.setNodeMetadata (frozen `asset_id`, the reference)
+  //   → DocumentCommandSink → DocumentEngine.apply
+  //   → Lock → Validation → History → Document → CommandResult
+  //   → frozen AssetContentStore (the bytes, once the reference landed)
+  //
+  // The ordering is the already-approved import determination
+  // (`importAsset` → … → `setNodeMetadata`), with registration-before-
+  // reference honoured by this caller — the frozen reducer performs no
+  // referential validation and this session never leans on one.
+  //
+  // Replacement re-points the SAME motif node: the node is never deleted,
+  // re-created or replaced, so its id, its `object_type` classification, its
+  // z-position, its children, its lock and its visibility all survive, the
+  // motif stays independently addressable and editable, and the fabric,
+  // sibling motifs and garment structure are untouched. The frozen
+  // `setNodeMetadata` inverse carries the previous reference verbatim, so
+  // undo/redo of an artwork change is the engine's own mechanism.
+  //
+  // NOT ATOMIC, and deliberately not made so. Two frozen commands are two
+  // history entries with two exact inverses; the codebase has no grouping or
+  // transaction mechanism and records its absence as an open question
+  // (`core_document/test/element_replace_test.dart`: "Single-step undo would
+  // require a grouping mechanism that does not exist (Q7 discovered #1,
+  // open)"). So when the engine refuses the reference — a locked motif is its
+  // own rejection — the registration that had to precede it stands, and one
+  // undo withdraws it through its own frozen inverse. Compensating for it here
+  // would be a caller-side transaction this architecture does not have: it
+  // would make an operation that reports *rejected* append history, advance
+  // the revision, dirty the document and truncate the user's redo branch.
+  // Resolving it needs a separate architectural decision, not an invention.
+
+  /// Uploads the artwork file at [path] and applies it to printed motif
+  /// [nodeId], replacing whatever artwork that motif currently references.
+  ///
+  /// An unreadable, empty or non-artwork path is refused before any command is
+  /// built, so the document is never entered.
+  Future<CommandResult> applyMotifArtwork(String nodeId, String path) {
+    final artwork = readArtworkFile(path);
+    if (artwork == null) {
+      return Future.value(
+        _record(
+          CommandResult.rejected(
+            reason: CommandRejectionReason.invalid,
+            detail: 'Not readable motif artwork: $path',
+          ),
+        ),
+      );
+    }
+    return applyMotifArtworkBytes(nodeId, artwork);
+  }
+
+  /// Applies already-read [artwork] to printed motif [nodeId] — the operation
+  /// [applyMotifArtwork] performs once it has bytes, and the entry point any
+  /// other artwork source uses.
+  Future<CommandResult> applyMotifArtworkBytes(
+    String nodeId,
+    MotifArtwork artwork,
+  ) async {
+    // Two caller-side preconditions, both refused before a command exists so
+    // the document is never entered: the payload must be real artwork, and
+    // artwork belongs to a printed motif. Neither is a reducer rule (node
+    // metadata is an open map, ADR-0002), so neither pre-empts an engine
+    // decision — the same standing as the registration-before-reference
+    // dependency this composition also honours.
+    if (!isArtworkPayload(artwork)) {
+      return _record(
+        const CommandResult.rejected(
+          reason: CommandRejectionReason.invalid,
+          detail: 'Not motif artwork: empty or unsupported content',
+        ),
+      );
+    }
+    final target = _designRoot.findById(nodeId);
+    if (target == null) {
+      return _record(
+        const CommandResult.rejected(
+          reason: CommandRejectionReason.notFound,
+          detail: 'No such design node',
+        ),
+      );
+    }
+    if (!_isMotif(target)) {
+      return _record(
+        const CommandResult.rejected(
+          reason: CommandRejectionReason.invalid,
+          detail: 'Artwork applies to a printed motif only',
+        ),
+      );
+    }
+
+    // Hashing is pure, so identity and the dedup key are settled before
+    // anything is mutated or stored. Content addressing IS the dedup key
+    // ("integrity + dedup key into the asset store"), so identical artwork
+    // already registered is referenced again — the frozen "one asset, many
+    // nodes" rule — instead of entering the registry twice.
+    final hash = artworkContentHash(artwork);
+    final reuse = _registeredArtwork(hash);
+    final assetId = reuse?.id ?? _assetIds.next();
+    if (reuse == null) {
+      final imported = _owner.importAsset(
+        asset: motifArtworkRecord(id: assetId, artwork: artwork, hash: hash),
+      );
+      if (imported is CommandRejected) {
+        return _record(imported);
+      }
+    }
+
+    final bound = _owner.setNodeMetadata(
+      artboardId: artboardId,
+      nodeId: nodeId,
+      key: NodeAssetBinding.assetIdKey,
+      value: assetId,
+    );
+    if (bound is CommandApplied) {
+      // The bytes follow the reference, never precede it: a refused upload
+      // leaves the content store exactly as it was. The frozen store is
+      // content-addressed, so this is idempotent for shared artwork.
+      await artworkStore.put(artwork.bytes);
+    }
+    return _record(bound);
+  }
+
+  /// The registered motif asset whose content is [hash], or null when this
+  /// artwork is new to the document.
+  AssetRecord? _registeredArtwork(String hash) {
+    for (final record in engine.document.assets.assets.values) {
+      if (record.hash == hash && record.kind == AssetKind.motif) {
+        return record;
+      }
+    }
+    return null;
+  }
 
   CommandResult _record(CommandResult result) {
     lastResult = switch (result) {

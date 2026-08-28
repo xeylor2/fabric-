@@ -22,6 +22,8 @@ dependencies:
   # FEBRIC core engines (Architecture V2, section 14)
   core_ai:
     path: ../packages/core_ai
+  core_asset:
+    path: ../packages/core_asset
   core_assets:
     path: ../packages/core_assets
   core_color:

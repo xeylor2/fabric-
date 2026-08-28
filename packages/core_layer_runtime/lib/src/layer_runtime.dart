@@ -62,6 +62,17 @@ typedef DocumentCommandSink =
 /// runtime never pre-empts a reducer decision, and [duplicateDesignNode]
 /// carries the caller's pre-cloned subtree exactly as the frozen command
 /// requires (`DesignTreeOps.cloneWithIds`).
+///
+/// **Motif artwork stage — asset registration emission.** The same ownership
+/// surface covers the already-frozen [importAsset] command. ADR-0016 decision 4
+/// froze exactly this shape — tree nodes "ONLY reference assets (frozen
+/// metadata keys, written via the existing command bus — no new commands, no
+/// schema change)" — so artwork import needs no new command, model, sink or
+/// mutation entry: it is the identical emit-and-forward discipline over a
+/// command whose reducer behaviour and exact inverse were frozen in M2. The
+/// document's `AssetRegistry` therefore keeps exactly ONE authority
+/// (`DocumentEngine.apply`) and no parallel asset mutation path exists. This
+/// runtime builds no asset identity, hashes no content and owns no catalogue.
 final class LayerRuntime {
   /// Creates a runtime that forwards commands through [sink] (bind to
   /// `DocumentEngine.apply`), optionally seeded with an [activeLayerId].
@@ -359,6 +370,28 @@ final class LayerRuntime {
       sourceNodeId: sourceNodeId,
       duplicate: duplicate,
     ),
+    source: source,
+    author: author,
+  );
+
+  // ----------------------------------------------- asset registration (M2)
+  // The frozen asset command, on the identical emit-and-forward discipline.
+  // Registration is the data-dependency prerequisite of a node reference (the
+  // approved import ordering `importAsset` → … → `setNodeMetadata`), and the
+  // reference itself rides [setNodeMetadata] above — the frozen ADR-0016
+  // writer. Nothing here validates, dedups, hashes or reference-counts: the
+  // frozen reducer owns the registry's dedup and its exact inverse, and the
+  // caller owns asset identity and content.
+
+  /// Emits the frozen [ImportAssetCommand] and forwards it. The caller
+  /// supplies the frozen [AssetRecord] — this runtime neither builds asset
+  /// identity nor owns any bitmap data.
+  CommandResult importAsset({
+    required AssetRecord asset,
+    CommandSource source = CommandSource.user,
+    String author = 'local',
+  }) => _sink(
+    DocumentCommand.importAsset(asset: asset),
     source: source,
     author: author,
   );

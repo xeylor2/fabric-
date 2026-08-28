@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:feature_design_tree/feature_design_tree.dart';
 import 'package:febric/di/design_tree_session.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +41,11 @@ class DesignTreePanel extends ConsumerWidget {
         onGarmentAdd: session.instantiateGarment,
         onFabricAdd: session.createFabric,
         onMotifAdd: session.createMotif,
+        // Reading the artwork file is the only asynchronous step in the whole
+        // chain; the session bumps `revision` once the frozen engine has
+        // answered, and this builder re-reads on that.
+        onMotifArtwork: (nodeId, artworkSource) =>
+            unawaited(session.applyMotifArtwork(nodeId, artworkSource)),
       ),
     );
   }

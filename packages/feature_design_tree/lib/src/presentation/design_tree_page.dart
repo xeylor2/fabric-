@@ -40,11 +40,13 @@ class DesignTreePage extends StatefulWidget {
     this.onGarmentAdd,
     this.onFabricAdd,
     this.onMotifAdd,
+    this.onMotifArtwork,
   });
 
   /// Flattened design-tree rows: node id, display label, depth, the parent that
-  /// owns it, its sibling index, its visibility, its node-lock flag and a
-  /// pre-rendered metadata line (null when empty). Primitives only — no
+  /// owns it, its sibling index, its visibility, its node-lock flag, a
+  /// pre-rendered metadata line (null when empty), whether the row is a printed
+  /// motif and whether it already references artwork. Primitives only — no
   /// document type crosses into presentation.
   final List<
     ({
@@ -56,6 +58,8 @@ class DesignTreePage extends StatefulWidget {
       bool visible,
       bool locked,
       String? metadata,
+      bool motif,
+      bool hasArtwork,
     })
   >?
   rows;
@@ -143,6 +147,12 @@ class DesignTreePage extends StatefulWidget {
   /// under the given node.
   final void Function(String parentNodeId)? onMotifAdd;
 
+  /// Reports the artwork the user asked to apply to a printed motif: the motif
+  /// node id and the artwork source exactly as entered. Whether that is an
+  /// upload or a replacement is the same intent — the composition root owns the
+  /// meaning, this page owns neither.
+  final void Function(String nodeId, String artworkSource)? onMotifArtwork;
+
   @override
   State<DesignTreePage> createState() => _DesignTreePageState();
 }
@@ -154,6 +164,7 @@ class _DesignTreePageState extends State<DesignTreePage> {
   final TextEditingController _nodeName = TextEditingController();
   final TextEditingController _nodeMetaKey = TextEditingController();
   final TextEditingController _nodeMetaValue = TextEditingController();
+  final TextEditingController _motifArtwork = TextEditingController();
 
   /// Keeps five controls inside a narrow panel without overflow. Cosmetic only:
   /// keys, callbacks and enablement of the M19 movement buttons are unchanged.
@@ -170,6 +181,7 @@ class _DesignTreePageState extends State<DesignTreePage> {
     _nodeName.dispose();
     _nodeMetaKey.dispose();
     _nodeMetaValue.dispose();
+    _motifArtwork.dispose();
     super.dispose();
   }
 
@@ -270,7 +282,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
   List<Widget> _nodeFields(BuildContext context) {
     if (widget.onNodeAdd == null &&
         widget.onNodeRename == null &&
-        widget.onNodeMetadata == null) {
+        widget.onNodeMetadata == null &&
+        widget.onMotifArtwork == null) {
       return const <Widget>[];
     }
     return [
@@ -284,6 +297,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
       _field('node-name-field', _nodeName, 'Node name'),
       _field('node-meta-key-field', _nodeMetaKey, 'Node metadata key'),
       _field('node-meta-value-field', _nodeMetaValue, 'Node metadata value'),
+      if (widget.onMotifArtwork != null)
+        _field('motif-artwork-field', _motifArtwork, 'Motif artwork file'),
     ];
   }
 
@@ -309,6 +324,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
         bool visible,
         bool locked,
         String? metadata,
+        bool motif,
+        bool hasArtwork,
       })
     >
     rows,
@@ -326,6 +343,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
         bool visible,
         bool locked,
         String? metadata,
+        bool motif,
+        bool hasArtwork,
       })
     >
     rows,
@@ -338,6 +357,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
       bool visible,
       bool locked,
       String? metadata,
+      bool motif,
+      bool hasArtwork,
     })
     row,
     void Function(String nodeId, String newParentId, int index) onMove,
@@ -449,6 +470,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
       bool visible,
       bool locked,
       String? metadata,
+      bool motif,
+      bool hasArtwork,
     })
     row,
   ) {
@@ -461,7 +484,8 @@ class _DesignTreePageState extends State<DesignTreePage> {
         widget.onNodeMetadata != null ||
         widget.onNodeDelete != null ||
         widget.onFabricAdd != null ||
-        widget.onMotifAdd != null;
+        widget.onMotifAdd != null ||
+        widget.onMotifArtwork != null;
     if (!wired) {
       return const <Widget>[];
     }
@@ -477,6 +501,7 @@ class _DesignTreePageState extends State<DesignTreePage> {
               ? 'Element'
               : _nodeName.text.trim();
           final metaKey = _nodeMetaKey.text.trim();
+          final artwork = _motifArtwork.text.trim();
           return [
             PopupMenuItem<void>(
               key: Key('node-add-${row.id}'),
@@ -496,6 +521,21 @@ class _DesignTreePageState extends State<DesignTreePage> {
               onTap: () => widget.onMotifAdd!(row.id),
               child: const Text('Add printed motif layer'),
             ),
+            // Artwork belongs to a printed motif, so the action is offered on
+            // motif rows only — read off the supplied projection, exactly like
+            // every other enablement here. Upload and replacement are the one
+            // intent; the label follows the row's current artwork state.
+            if (row.motif)
+              PopupMenuItem<void>(
+                key: Key('node-artwork-${row.id}'),
+                enabled: widget.onMotifArtwork != null && artwork.isNotEmpty,
+                onTap: () => widget.onMotifArtwork!(row.id, artwork),
+                child: Text(
+                  row.hasArtwork
+                      ? 'Replace motif artwork'
+                      : 'Upload motif artwork',
+                ),
+              ),
             PopupMenuItem<void>(
               key: Key('node-rename-${row.id}'),
               enabled: widget.onNodeRename != null,

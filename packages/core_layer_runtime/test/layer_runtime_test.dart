@@ -435,6 +435,63 @@ void main() {
       expect(engine.isDirty, isFalse);
     });
   });
+
+  group('asset registration — the same authorized emission site', () {
+    const asset = AssetRecord(
+      id: 'asset-1',
+      name: 'Boteh',
+      kind: AssetKind.motif,
+      source: AssetSource.imported,
+      hash: 'sha256:abc',
+    );
+
+    test('importAsset emits an ImportAssetCommand carrying the record '
+        'verbatim', () {
+      final spy = _SpySink();
+      LayerRuntime(sink: spy.call).importAsset(asset: asset);
+      expect(spy.commands.single, const DocumentCommand.importAsset(asset: asset));
+      expect((spy.commands.single as ImportAssetCommand).asset, same(asset));
+    });
+
+    test('forwards the caller source/author and holds no state', () {
+      final spy = _SpySink();
+      final r = LayerRuntime(sink: spy.call);
+      r.importAsset(asset: asset, source: CommandSource.tool, author: 'tool');
+      r.importAsset(asset: asset, source: CommandSource.plugin);
+      expect(spy.sources, [CommandSource.tool, CommandSource.plugin]);
+      expect(spy.authors, ['tool', 'local']);
+      // Emission changed no runtime state: layer emission still works.
+      r.deleteLayer(artboardId: 'ab', layerId: 'l');
+      expect(spy.commands.last, isA<DeleteLayerCommand>());
+      expect(r.activeLayerId, isNull);
+    });
+
+    test('identical intent builds identical frozen command values', () {
+      final a = _SpySink();
+      final b = _SpySink();
+      LayerRuntime(sink: a.call).importAsset(asset: asset);
+      LayerRuntime(sink: b.call).importAsset(asset: asset);
+      expect(a.commands.single, b.commands.single);
+    });
+
+    test('reaches the real frozen pipeline: it registers, the frozen dedup '
+        'rejects a repeat inert, and undo withdraws it', () {
+      final engine = DocumentEngine(document: _emptyDoc());
+      final r = LayerRuntime(sink: engine.apply);
+
+      expect(r.importAsset(asset: asset), isA<CommandApplied>());
+      expect(engine.document.assets.byId('asset-1'), asset);
+
+      // The dedup is the reducer's rule, not this runtime's.
+      final before = engine.document;
+      expect(r.importAsset(asset: asset), isA<CommandRejected>());
+      expect(engine.document, same(before));
+
+      // One frozen inverse withdraws the registration exactly.
+      expect(engine.undo(), isA<CommandApplied>());
+      expect(engine.document.assets.byId('asset-1'), isNull);
+    });
+  });
 }
 
 FebricDocument _emptyDoc() => FebricDocument(
