@@ -85,10 +85,7 @@ void main() {
       'repeat',
       'version_history',
     ]);
-    expect(
-      () => NodeCapability.fromWireName('unknown'),
-      throwsArgumentError,
-    );
+    expect(() => NodeCapability.fromWireName('unknown'), throwsArgumentError);
   });
 
   test('the capability matrix rows are frozen (Architecture V2 §4.2)', () {

@@ -137,7 +137,10 @@ void main() {
           ),
         ),
       );
-      expect((result as CommandRejected).reason, CommandRejectionReason.invalid);
+      expect(
+        (result as CommandRejected).reason,
+        CommandRejectionReason.invalid,
+      );
     });
 
     test('deleteDesignNode removes the subtree; undo restores children', () {
@@ -169,7 +172,10 @@ void main() {
           nodeId: 'ab-1-tree',
         ),
       );
-      expect((result as CommandRejected).reason, CommandRejectionReason.invalid);
+      expect(
+        (result as CommandRejected).reason,
+        CommandRejectionReason.invalid,
+      );
     });
 
     test('moveDesignNode relocates with an exact inverse', () {
@@ -200,7 +206,10 @@ void main() {
           index: 0,
         ),
       );
-      expect((result as CommandRejected).reason, CommandRejectionReason.invalid);
+      expect(
+        (result as CommandRejected).reason,
+        CommandRejectionReason.invalid,
+      );
     });
 
     test('rename and metadata commands invert to previous values', () {
@@ -243,7 +252,10 @@ void main() {
           name: '   ',
         ),
       );
-      expect((result as CommandRejected).reason, CommandRejectionReason.invalid);
+      expect(
+        (result as CommandRejected).reason,
+        CommandRejectionReason.invalid,
+      );
     });
 
     test('duplicateDesignNode inserts the clone after its source', () {
@@ -284,7 +296,10 @@ void main() {
           duplicate: rootOf(e).findById('p-sleeve-r')!,
         ),
       );
-      expect((result as CommandRejected).reason, CommandRejectionReason.invalid);
+      expect(
+        (result as CommandRejected).reason,
+        CommandRejectionReason.invalid,
+      );
     });
   });
 
@@ -391,7 +406,10 @@ void main() {
           visible: false,
         ),
       );
-      expect((result as CommandRejected).reason, CommandRejectionReason.invalid);
+      expect(
+        (result as CommandRejected).reason,
+        CommandRejectionReason.invalid,
+      );
     });
 
     test('zones hide and reappear with exact inverses', () {
@@ -438,10 +456,9 @@ void main() {
         ['z-field'],
       );
       expect(
-        SemanticPath.parse('artwork.kurta.sleeve[right].border')
-            .resolve(root)
-            .single
-            .id,
+        SemanticPath.parse(
+          'artwork.kurta.sleeve[right].border',
+        ).resolve(root).single.id,
         'z-border-r',
       );
       expect(

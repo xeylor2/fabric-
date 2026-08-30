@@ -112,16 +112,17 @@ void main() {
     });
 
     test('replacingDocument swaps one document wholesale and dedups', () {
-      final graph = AssetUsageGraph(
-        usages: [
-          usage('a-1', documentId: 'd-1'),
-          usage('a-1', documentId: 'd-2', nodeId: 'n-9'),
-        ],
-      ).replacingDocument('d-1', [
-        usage('a-2', documentId: 'd-1'),
-        usage('a-2', documentId: 'd-1'),
-        usage('a-3', documentId: 'd-9', nodeId: 'n-x'),
-      ]);
+      final graph =
+          AssetUsageGraph(
+            usages: [
+              usage('a-1', documentId: 'd-1'),
+              usage('a-1', documentId: 'd-2', nodeId: 'n-9'),
+            ],
+          ).replacingDocument('d-1', [
+            usage('a-2', documentId: 'd-1'),
+            usage('a-2', documentId: 'd-1'),
+            usage('a-3', documentId: 'd-9', nodeId: 'n-x'),
+          ]);
 
       expect(graph.assetsInDocument('d-1'), ['a-2']);
       expect(graph.assetsInDocument('d-2'), ['a-1']);
@@ -134,7 +135,10 @@ void main() {
 
     test('graph JSON round-trips losslessly', () {
       final graph = AssetUsageGraph(
-        usages: [usage('a-1'), usage('a-2', nodeId: 'n-2')],
+        usages: [
+          usage('a-1'),
+          usage('a-2', nodeId: 'n-2'),
+        ],
       );
       expect(AssetUsageGraph.fromJson(graph.toJson()), graph);
     });

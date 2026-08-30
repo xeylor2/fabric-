@@ -46,7 +46,10 @@ void main() {
       addTearDown(session.dispose);
       final result = session.renameNode('node-motif-a', 'Renamed');
       expect(result, isA<CommandApplied>(), reason: session.lastResult);
-      expect(treeRoot(session.engine).findById('node-motif-a')!.name, 'Renamed');
+      expect(
+        treeRoot(session.engine).findById('node-motif-a')!.name,
+        'Renamed',
+      );
     });
     test('duplicate inserts a fresh-id clone as the next sibling', () {
       final session = DesignTreeSession.inMemory();
@@ -60,9 +63,18 @@ void main() {
       expect(cloneId, isNot('node-chest')); // fresh identity
       final clone = treeRoot(session.engine).findById(cloneId)!;
       expect(clone.name, 'Chest'); // same content
-      expect(clone.children.map((n) => n.name), ['Motif A', 'Motif B', 'Motif C']);
+      expect(clone.children.map((n) => n.name), [
+        'Motif A',
+        'Motif B',
+        'Motif C',
+      ]);
       // Every id in the cloned subtree is new.
-      final originalIds = {'node-chest', 'node-motif-a', 'node-motif-b', 'node-motif-c'};
+      final originalIds = {
+        'node-chest',
+        'node-motif-a',
+        'node-motif-b',
+        'node-motif-c',
+      };
       expect(
         clone.descendantsAndSelf.map((n) => n.id).where(originalIds.contains),
         isEmpty,
@@ -72,19 +84,40 @@ void main() {
     test('visibility hides and shows a node', () {
       final session = DesignTreeSession.inMemory();
       addTearDown(session.dispose);
-      expect(session.setNodeVisibility('node-motif-a', false), isA<CommandApplied>());
-      expect(treeRoot(session.engine).findById('node-motif-a')!.visible, isFalse);
-      expect(session.setNodeVisibility('node-motif-a', true), isA<CommandApplied>());
-      expect(treeRoot(session.engine).findById('node-motif-a')!.visible, isTrue);
+      expect(
+        session.setNodeVisibility('node-motif-a', false),
+        isA<CommandApplied>(),
+      );
+      expect(
+        treeRoot(session.engine).findById('node-motif-a')!.visible,
+        isFalse,
+      );
+      expect(
+        session.setNodeVisibility('node-motif-a', true),
+        isA<CommandApplied>(),
+      );
+      expect(
+        treeRoot(session.engine).findById('node-motif-a')!.visible,
+        isTrue,
+      );
     });
 
     test('the node-lock flag is set and cleared', () {
       final session = DesignTreeSession.inMemory();
       addTearDown(session.dispose);
-      expect(session.setNodeLocked('node-motif-a', true), isA<CommandApplied>());
+      expect(
+        session.setNodeLocked('node-motif-a', true),
+        isA<CommandApplied>(),
+      );
       expect(treeRoot(session.engine).findById('node-motif-a')!.locked, isTrue);
-      expect(session.setNodeLocked('node-motif-a', false), isA<CommandApplied>());
-      expect(treeRoot(session.engine).findById('node-motif-a')!.locked, isFalse);
+      expect(
+        session.setNodeLocked('node-motif-a', false),
+        isA<CommandApplied>(),
+      );
+      expect(
+        treeRoot(session.engine).findById('node-motif-a')!.locked,
+        isFalse,
+      );
     });
     test('metadata set then clear (null clears the entry)', () {
       final session = DesignTreeSession.inMemory();
@@ -93,15 +126,17 @@ void main() {
         session.setNodeMetadata('node-motif-a', 'role', 'hero'),
         isA<CommandApplied>(),
       );
-      expect(
-        treeRoot(session.engine).findById('node-motif-a')!.metadata,
-        {'role': 'hero'},
-      );
+      expect(treeRoot(session.engine).findById('node-motif-a')!.metadata, {
+        'role': 'hero',
+      });
       expect(
         session.setNodeMetadata('node-motif-a', 'role', null),
         isA<CommandApplied>(),
       );
-      expect(treeRoot(session.engine).findById('node-motif-a')!.metadata, isEmpty);
+      expect(
+        treeRoot(session.engine).findById('node-motif-a')!.metadata,
+        isEmpty,
+      );
     });
 
     test('delete removes the node subtree', () {
@@ -146,7 +181,10 @@ void main() {
       final before = session.engine.document;
       final result = session.duplicateNode('no-such-node');
       expect(result, isA<CommandRejected>());
-      expect((result as CommandRejected).reason, CommandRejectionReason.notFound);
+      expect(
+        (result as CommandRejected).reason,
+        CommandRejectionReason.notFound,
+      );
       expect(session.engine.document, same(before));
       expect(session.engine.document.history.entries, isEmpty);
     });
@@ -166,35 +204,53 @@ void main() {
       // The frozen capability matrix gives `project` no `hide` capability.
       final result = session.setNodeVisibility('node-root', false);
       expect(result, isA<CommandRejected>());
-      expect((result as CommandRejected).reason, CommandRejectionReason.invalid);
+      expect(
+        (result as CommandRejected).reason,
+        CommandRejectionReason.invalid,
+      );
       expect(session.engine.document, same(before));
       expect(session.engine.document.history.entries, isEmpty);
     });
-    test('a node-locked subtree rejects edits; unlocking is the release path', () {
-      final session = DesignTreeSession.inMemory();
-      addTearDown(session.dispose);
-      expect(session.setNodeLocked('node-chest', true), isA<CommandApplied>());
-      // The node itself and its descendants are now inert to structural edits.
-      for (final result in <CommandResult>[
-        session.renameNode('node-chest', 'X'),
-        session.renameNode('node-motif-a', 'X'),
-        session.deleteNode('node-motif-a'),
-        session.setNodeMetadata('node-motif-a', 'k', 'v'),
-        session.createNode('node-chest', 'D'),
-      ]) {
-        expect(result, isA<CommandRejected>());
-        expect((result as CommandRejected).reason, CommandRejectionReason.locked);
-      }
-      expect(childNames(session.engine, 'node-chest'), [
-        'Motif A',
-        'Motif B',
-        'Motif C',
-      ]);
-      expect(session.engine.document.history.entries, hasLength(1)); // the lock
-      // Unlocking is always permitted, and editing resumes.
-      expect(session.setNodeLocked('node-chest', false), isA<CommandApplied>());
-      expect(session.renameNode('node-motif-a', 'A2'), isA<CommandApplied>());
-    });
+    test(
+      'a node-locked subtree rejects edits; unlocking is the release path',
+      () {
+        final session = DesignTreeSession.inMemory();
+        addTearDown(session.dispose);
+        expect(
+          session.setNodeLocked('node-chest', true),
+          isA<CommandApplied>(),
+        );
+        // The node itself and its descendants are now inert to structural edits.
+        for (final result in <CommandResult>[
+          session.renameNode('node-chest', 'X'),
+          session.renameNode('node-motif-a', 'X'),
+          session.deleteNode('node-motif-a'),
+          session.setNodeMetadata('node-motif-a', 'k', 'v'),
+          session.createNode('node-chest', 'D'),
+        ]) {
+          expect(result, isA<CommandRejected>());
+          expect(
+            (result as CommandRejected).reason,
+            CommandRejectionReason.locked,
+          );
+        }
+        expect(childNames(session.engine, 'node-chest'), [
+          'Motif A',
+          'Motif B',
+          'Motif C',
+        ]);
+        expect(
+          session.engine.document.history.entries,
+          hasLength(1),
+        ); // the lock
+        // Unlocking is always permitted, and editing resumes.
+        expect(
+          session.setNodeLocked('node-chest', false),
+          isA<CommandApplied>(),
+        );
+        expect(session.renameNode('node-motif-a', 'A2'), isA<CommandApplied>());
+      },
+    );
 
     test('document lock rejection is decided by the engine, pre-mutation', () {
       final locked = DocumentEngine(
@@ -263,9 +319,8 @@ void main() {
 
       final treeBefore = treeRoot(session.engine);
       session.createLayer('layer-root', 'Base');
-      final layerId = session.engine.document.artboards.first.layerRoot.children
-          .single
-          .id;
+      final layerId =
+          session.engine.document.artboards.first.layerRoot.children.single.id;
       session.setLayerMetadata(layerId, 'k', 'v');
       expect(treeRoot(session.engine), treeBefore);
     });
@@ -327,17 +382,19 @@ void main() {
 
       // 4. visibility
       await invoke('node-visibility', 'node-motif-b');
-      expect(treeRoot(session.engine).findById('node-motif-b')!.visible, isFalse);
+      expect(
+        treeRoot(session.engine).findById('node-motif-b')!.visible,
+        isFalse,
+      );
       expect(find.byKey(const Key('node-state-node-motif-b')), findsOneWidget);
 
       // 5. metadata set / clear
       await type('node-meta-key-field', 'role');
       await type('node-meta-value-field', 'hero');
       await invoke('node-meta-set', 'node-motif-b');
-      expect(
-        treeRoot(session.engine).findById('node-motif-b')!.metadata,
-        {'role': 'hero'},
-      );
+      expect(treeRoot(session.engine).findById('node-motif-b')!.metadata, {
+        'role': 'hero',
+      });
       await invoke('node-meta-clear', 'node-motif-b');
       expect(
         treeRoot(session.engine).findById('node-motif-b')!.metadata,

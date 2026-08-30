@@ -7,9 +7,12 @@
 /// `UniversalCanvasContract.activeTransform`), and resets to the frozen
 /// identity.
 ///
-/// Introduces zero new transform mathematics or behavior — no
-/// gesture-to-transform mapping and no transform composition. Pure holder of
-/// the frozen `Transform2D`.
+/// Under the B-2 authorization for canvas motif movement it additionally hosts
+/// the EPHEMERAL in-flight transform of one move, composing an anchor with an
+/// already-converted document-space gesture delta (translation only, via the
+/// frozen `Transform2D.copyWith` and `Point2D +`). It still maps no gesture,
+/// defines no transform algebra, and holds no document sink — the in-flight
+/// transform is never document state.
 library;
 
 export 'src/transform_runtime.dart';

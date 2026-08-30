@@ -146,14 +146,12 @@ void main() {
         ),
       );
 
-      final ids = NodeAssetBinding.assetIdsOf(
-        treeOf(doc).findById('z-field')!,
-      );
-      expect(
-        ids,
-        ['a-fill', 'a-brush', 'a-palette'],
-        reason: 'primary first, refs after, duplicates collapsed',
-      );
+      final ids = NodeAssetBinding.assetIdsOf(treeOf(doc).findById('z-field')!);
+      expect(ids, [
+        'a-fill',
+        'a-brush',
+        'a-palette',
+      ], reason: 'primary first, refs after, duplicates collapsed');
     });
 
     test('undoing the binding command unbinds — the whole loop is '

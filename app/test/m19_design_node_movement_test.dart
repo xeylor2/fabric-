@@ -132,34 +132,34 @@ void main() {
       final before = locked.document;
       final result = session.moveNode('node-motif-a', 'node-chest', 2);
       expect(result, isA<CommandRejected>());
-      expect(
-        (result as CommandRejected).reason,
-        CommandRejectionReason.locked,
-      );
+      expect((result as CommandRejected).reason, CommandRejectionReason.locked);
       expect(locked.document, same(before));
       expect(locked.document.history.entries, isEmpty);
     });
-    test('undo/redo is the engine mechanism; pending redo survives a reject', () {
-      final session = DesignTreeSession.inMemory();
-      addTearDown(session.dispose);
-      session.moveNode('node-motif-a', 'node-chest', 2);
-      final afterMove = zoneOrder(session.engine);
-      expect(session.undo(), isA<CommandApplied>());
-      expect(zoneOrder(session.engine), [
-        'node-motif-a',
-        'node-motif-b',
-        'node-motif-c',
-      ]);
-      expect(session.canRedo, isTrue);
-      // A rejected command must not disturb the pending redo.
-      expect(
-        session.moveNode('node-motif-a', 'no-such-parent', 0),
-        isA<CommandRejected>(),
-      );
-      expect(session.canRedo, isTrue);
-      expect(session.redo(), isA<CommandApplied>());
-      expect(zoneOrder(session.engine), afterMove);
-    });
+    test(
+      'undo/redo is the engine mechanism; pending redo survives a reject',
+      () {
+        final session = DesignTreeSession.inMemory();
+        addTearDown(session.dispose);
+        session.moveNode('node-motif-a', 'node-chest', 2);
+        final afterMove = zoneOrder(session.engine);
+        expect(session.undo(), isA<CommandApplied>());
+        expect(zoneOrder(session.engine), [
+          'node-motif-a',
+          'node-motif-b',
+          'node-motif-c',
+        ]);
+        expect(session.canRedo, isTrue);
+        // A rejected command must not disturb the pending redo.
+        expect(
+          session.moveNode('node-motif-a', 'no-such-parent', 0),
+          isA<CommandRejected>(),
+        );
+        expect(session.canRedo, isTrue);
+        expect(session.redo(), isA<CommandApplied>());
+        expect(zoneOrder(session.engine), afterMove);
+      },
+    );
 
     test('determinism: identical intent sequences yield identical trees', () {
       final a = DesignTreeSession.inMemory();

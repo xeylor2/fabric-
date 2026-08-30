@@ -384,21 +384,24 @@ void main() {
       expect(cmd.duplicate, node); // no cloning happens in the runtime
     });
 
-    test('every helper forwards the caller source/author and holds no state', () {
-      final spy = _SpySink();
-      final r = LayerRuntime(sink: spy.call, activeLayerId: 'grp');
-      r.createDesignNode(
-        artboardId: 'ab',
-        node: node,
-        source: CommandSource.tool,
-        author: 'panel',
-      );
-      r.setNodeMetadata(artboardId: 'ab', nodeId: 'n', key: 'k', value: 1);
-      expect(spy.sources.first, CommandSource.tool);
-      expect(spy.authors.first, 'panel');
-      expect(r.activeLayerId, 'grp'); // no runtime state touched
-      expect(spy.commands, hasLength(2)); // exactly one emission per call
-    });
+    test(
+      'every helper forwards the caller source/author and holds no state',
+      () {
+        final spy = _SpySink();
+        final r = LayerRuntime(sink: spy.call, activeLayerId: 'grp');
+        r.createDesignNode(
+          artboardId: 'ab',
+          node: node,
+          source: CommandSource.tool,
+          author: 'panel',
+        );
+        r.setNodeMetadata(artboardId: 'ab', nodeId: 'n', key: 'k', value: 1);
+        expect(spy.sources.first, CommandSource.tool);
+        expect(spy.authors.first, 'panel');
+        expect(r.activeLayerId, 'grp'); // no runtime state touched
+        expect(spy.commands, hasLength(2)); // exactly one emission per call
+      },
+    );
 
     test('identical intent builds identical frozen command values', () {
       final a = _SpySink();
@@ -449,7 +452,10 @@ void main() {
         'verbatim', () {
       final spy = _SpySink();
       LayerRuntime(sink: spy.call).importAsset(asset: asset);
-      expect(spy.commands.single, const DocumentCommand.importAsset(asset: asset));
+      expect(
+        spy.commands.single,
+        const DocumentCommand.importAsset(asset: asset),
+      );
       expect((spy.commands.single as ImportAssetCommand).asset, same(asset));
     });
 

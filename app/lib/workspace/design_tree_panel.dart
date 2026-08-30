@@ -44,8 +44,8 @@ class DesignTreePanel extends ConsumerWidget {
         // Reading the artwork file is the only asynchronous step in the whole
         // chain; the session bumps `revision` once the frozen engine has
         // answered, and this builder re-reads on that.
-        onMotifArtwork: (nodeId, artworkSource) =>
-            unawaited(session.applyMotifArtwork(nodeId, artworkSource)),
+        onTextileArtwork: (nodeId, artworkSource) =>
+            unawaited(session.applyTextileArtwork(nodeId, artworkSource)),
       ),
     );
   }

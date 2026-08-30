@@ -27,7 +27,10 @@ import 'package:core_transform_runtime/core_transform_runtime.dart';
 ///
 /// - [handleInput] completes the frozen `Hit Testing → Selection` edge by
 ///   feeding the session's `lastHit` into the [SelectionRuntime] (M7), using
-///   the modifiers the frozen [InteractionEvent] already carries;
+///   the modifiers the frozen [InteractionEvent] already carries — except while
+///   the transform runtime holds an in-flight move, when a content drag is
+///   moving the already-selected content rather than selecting anything
+///   (NDH-2, authorized for canvas motif movement only);
 /// - [selection] returns the live routed selection from the [SelectionRuntime]
 ///   — the piece M6's `InteractionSession` deliberately stubbed to
 ///   [SelectionState.empty] (the canvas *routes* selection, never owns it).
@@ -114,9 +117,24 @@ final class CompositeCanvasRuntime implements CanvasRuntimeContract {
   /// into the M7 selection runtime — completing the frozen
   /// `Hit Testing → Selection` step. Camera-only gestures leave `lastHit`
   /// unchanged and so touch the selection not at all.
+  ///
+  /// **NDH-2, authorized for canvas motif movement only** — one exception, and
+  /// it is a routing decision, not a new authority: while the M8 transform
+  /// runtime holds an in-flight move ([isMoving]), a content-route
+  /// [DragInteraction] is *moving* the already-selected content, so its hit is
+  /// not a selection intent and is not routed to selection. Without this a drag
+  /// that carries a motif across another object would silently re-select
+  /// whatever it passed over, and the gesture would end up moving one node while
+  /// selecting another. The gesture that *starts* the move is still routed
+  /// normally (no move is in flight yet), so the frozen
+  /// `SelectionMode.forModifiers` policy keeps deciding how a drag's own hit
+  /// combines. No selection state, model or policy is defined here.
   @override
   void handleInput(InteractionEvent event) {
     _interaction.handleInput(event);
+    if (event is DragInteraction && isMoving) {
+      return;
+    }
     final hit = _interaction.lastHit;
     if (hit != null) {
       _selection.applyHit(hit, modifiers: _modifiersOf(event));
@@ -152,6 +170,11 @@ final class CompositeCanvasRuntime implements CanvasRuntimeContract {
 
   /// Resets the active transform to `Transform2D.identity` (M8 runtime).
   Transform2D resetTransform() => _transform.reset();
+
+  /// Whether the M8 runtime currently holds an in-flight move (B-2). The
+  /// composition reads it to decide that a drag is moving content rather than
+  /// changing the selection; it decides nothing else with it.
+  bool get isMoving => _transform.isMoving;
 
   // ========================================= caller-initiated layer (M9)
   // Explicit only: emits frozen DocumentCommands through the M9 runtime, which

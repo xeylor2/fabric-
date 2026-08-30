@@ -20,7 +20,26 @@ dependencies:
     path: ../core_imaging
   core_design_system:
     path: ../core_design_system
+  # The frozen rendering / canvas / interaction contracts the Flutter render
+  # driver implements and drives. Every one is a pure-Dart core package and
+  # none is redefined here.
+  core_canvas:
+    path: ../core_canvas
+  core_canvas_runtime:
+    path: ../core_canvas_runtime
+  core_geometry:
+    path: ../core_geometry
+  core_interaction:
+    path: ../core_interaction
+  core_layer:
+    path: ../core_layer
+  core_performance:
+    path: ../core_performance
+  core_render:
+    path: ../core_render
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  core_textile:
+    path: ../core_textile

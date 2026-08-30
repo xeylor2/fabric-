@@ -28,10 +28,9 @@ void main() {
       garmentNode(engine, wireName).children;
 
   /// How many part *instances* an anatomy expands to under the launch content.
-  int expectedPartCount(GarmentType type) => garmentSchemaFor(type).parts.fold(
-    0,
-    (sum, definition) => sum + definition.cardinality,
-  );
+  int expectedPartCount(GarmentType type) => garmentSchemaFor(
+    type,
+  ).parts.fold(0, (sum, definition) => sum + definition.cardinality);
 
   group('the three launch garments instantiate from injected content', () {
     for (final type in launchGarmentTypes) {
@@ -62,36 +61,43 @@ void main() {
         expect(session.isDirty, isTrue);
       });
     }
-    test('mirrored parts expand to left/right instances with a symmetry group', () {
-      final session = DesignTreeSession.inMemory();
-      addTearDown(session.dispose);
-      session.instantiateGarment(GarmentType.kurta.wireName);
-      final sleeves = partsOf(session.engine, 'kurta')
-          .where((p) => p.metadata['part'] == GarmentPart.sleeve.wireName)
-          .toList();
-      expect(sleeves, hasLength(2));
-      expect(sleeves.map((p) => p.metadata['instance']), ['left', 'right']);
-      expect(
-        sleeves.every(
-          (p) => p.metadata['symmetry_group'] == GarmentPart.sleeve.wireName,
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'mirrored parts expand to left/right instances with a symmetry group',
+      () {
+        final session = DesignTreeSession.inMemory();
+        addTearDown(session.dispose);
+        session.instantiateGarment(GarmentType.kurta.wireName);
+        final sleeves = partsOf(session.engine, 'kurta')
+            .where((p) => p.metadata['part'] == GarmentPart.sleeve.wireName)
+            .toList();
+        expect(sleeves, hasLength(2));
+        expect(sleeves.map((p) => p.metadata['instance']), ['left', 'right']);
+        expect(
+          sleeves.every(
+            (p) => p.metadata['symmetry_group'] == GarmentPart.sleeve.wireName,
+          ),
+          isTrue,
+        );
+      },
+    );
 
-    test('schema zone slots become frozen zone nodes carrying their slot id', () {
-      final session = DesignTreeSession.inMemory();
-      addTearDown(session.dispose);
-      session.instantiateGarment(GarmentType.kurta.wireName);
-      final base = partsOf(session.engine, 'kurta').firstWhere(
-        (p) => p.metadata['part'] == GarmentPart.base.wireName,
-      );
-      expect(base.children.map((z) => z.type).toSet(), {DesignNodeType.zone});
-      expect(base.children.map((z) => z.metadata['zone_slot']), [
-        'field',
-        'edge',
-      ]);
-    });
+    test(
+      'schema zone slots become frozen zone nodes carrying their slot id',
+      () {
+        final session = DesignTreeSession.inMemory();
+        addTearDown(session.dispose);
+        session.instantiateGarment(GarmentType.kurta.wireName);
+        final base = partsOf(
+          session.engine,
+          'kurta',
+        ).firstWhere((p) => p.metadata['part'] == GarmentPart.base.wireName);
+        expect(base.children.map((z) => z.type).toSet(), {DesignNodeType.zone});
+        expect(base.children.map((z) => z.metadata['zone_slot']), [
+          'field',
+          'edge',
+        ]);
+      },
+    );
 
     test('all three coexist as independent garments under one project', () {
       final session = DesignTreeSession.inMemory();
@@ -138,7 +144,10 @@ void main() {
 
       // Each garment's own parts are reachable and do not collide.
       expect(SemanticPath.parse('*.pant.waist').resolve(root), hasLength(1));
-      expect(SemanticPath.parse('*.pant.leg[right]').resolve(root), hasLength(1));
+      expect(
+        SemanticPath.parse('*.pant.leg[right]').resolve(root),
+        hasLength(1),
+      );
       expect(
         SemanticPath.parse('*.dupatta.top_pallu').resolve(root),
         hasLength(1),
@@ -161,8 +170,10 @@ void main() {
       ).descendantsAndSelf.map((n) => n.id).toList();
       expect(ids.toSet(), hasLength(ids.length)); // no duplicate anywhere
       // Two instantiations of the same schema coexist.
-      expect(SemanticPath.parse('*.kurta').resolve(treeRoot(session.engine)),
-          hasLength(2));
+      expect(
+        SemanticPath.parse('*.kurta').resolve(treeRoot(session.engine)),
+        hasLength(2),
+      );
       expect(session.engine.document.history.entries, hasLength(2));
     });
     // PLACEHOLDER-GC2

@@ -1,5 +1,4 @@
 import 'package:core_workspace/core_workspace.dart';
-import 'package:feature_canvas_editor/feature_canvas_editor.dart';
 import 'package:feature_conversation/feature_conversation.dart';
 import 'package:feature_dashboard/feature_dashboard.dart';
 import 'package:feature_garment_library/feature_garment_library.dart';
@@ -7,6 +6,7 @@ import 'package:feature_inspector/feature_inspector.dart';
 import 'package:feature_production/feature_production.dart';
 import 'package:feature_projects/feature_projects.dart';
 import 'package:feature_settings/feature_settings.dart';
+import 'package:febric/workspace/canvas_panel.dart';
 import 'package:febric/workspace/design_tree_panel.dart';
 import 'package:flutter/material.dart';
 
@@ -78,7 +78,7 @@ final List<AppDestination> appDestinations = [
       compactPrimary: true,
     ),
     path: '/canvas',
-    pageBuilder: () => const CanvasEditorPage(),
+    pageBuilder: () => const CanvasPanel(),
   ),
   AppDestination(
     destination: const WorkspaceDestination(

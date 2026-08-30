@@ -68,10 +68,7 @@ void main() {
       'lab',
       'greyscale',
     ]);
-    expect(
-      () => AssetColourSpace.fromWireName('unknown'),
-      throwsArgumentError,
-    );
+    expect(() => AssetColourSpace.fromWireName('unknown'), throwsArgumentError);
   });
 
   test('AssetRejectionReason wire names are frozen', () {
@@ -144,9 +141,7 @@ void main() {
       for (final origin in AssetOrigin.values) {
         expect(
           DocumentAssetBinding.originFromRecord(
-            sourceWireName: DocumentAssetBinding.documentSourceWireName(
-              origin,
-            ),
+            sourceWireName: DocumentAssetBinding.documentSourceWireName(origin),
             metadata: {
               DocumentAssetBinding.assetOriginMetadataKey: origin.wireName,
             },

@@ -401,6 +401,70 @@ void main() {
       },
     );
   });
+
+  // NDH-2, authorized for canvas motif movement only. A content drag reaches
+  // selection exactly as a tap does — until the M8 runtime holds an in-flight
+  // move (B-2), at which point the drag is carrying the already-selected
+  // content and its hit is not a selection intent. The composition only reads
+  // that state; it never starts a move and owns no gesture.
+  group('V12 — a drag that is moving content is not a selection gesture', () {
+    InteractionEvent drag(GesturePhase phase, Point2D position) =>
+        InteractionEvent.drag(phase: phase, position: position);
+
+    test('with no move in flight a drag routes to selection like a tap', () {
+      final r = _composite();
+      r.handleInput(drag(GesturePhase.start, const Point2D(x: 10, y: 10)));
+      expect(r.isMoving, isFalse);
+      expect(r.selection.selectedIds, contains('node-1'));
+      // ...and dragging onto empty canvas clears it, per the frozen policy.
+      r.handleInput(drag(GesturePhase.update, const Point2D(x: 90, y: 90)));
+      expect(r.selection.isEmpty, isTrue);
+    });
+
+    test('an in-flight move holds the selection across the whole gesture', () {
+      final transform = TransformRuntime();
+      final r = _composite(transform: transform);
+      r.handleInput(drag(GesturePhase.start, const Point2D(x: 10, y: 10)));
+      final grabbed = r.selection;
+      expect(grabbed.selectedIds, contains('node-1'));
+
+      // The caller begins the move on the same frozen runtime the composition
+      // holds; the composition reads it and starts nothing.
+      transform.beginMove(Transform2D.identity);
+      expect(r.isMoving, isTrue);
+
+      // Carrying the content clean off every object now changes nothing.
+      r.handleInput(drag(GesturePhase.update, const Point2D(x: 90, y: 90)));
+      r.handleInput(drag(GesturePhase.end, const Point2D(x: 95, y: 95)));
+      expect(r.selection, grabbed);
+
+      // Settled: the composition routes selection again.
+      transform.endMove();
+      expect(r.isMoving, isFalse);
+      r.handleInput(drag(GesturePhase.start, const Point2D(x: 90, y: 90)));
+      expect(r.selection.isEmpty, isTrue);
+    });
+
+    test('the guard is drag-only: a tap still selects mid-move', () {
+      final transform = TransformRuntime()..beginMove(Transform2D.identity);
+      final r = _composite(transform: transform);
+      r.handleInput(
+        const InteractionEvent.tap(position: Point2D(x: 10, y: 10)),
+      );
+      expect(r.selection.selectedIds, contains('node-1'));
+    });
+
+    test('an in-flight move still emits no DocumentCommand', () {
+      final spy = _SpySink();
+      final transform = TransformRuntime()..beginMove(Transform2D.identity);
+      final r = _composite(
+        transform: transform,
+        layer: LayerRuntime(sink: spy.call),
+      );
+      r.handleInput(drag(GesturePhase.update, const Point2D(x: 20, y: 20)));
+      expect(spy.commands, isEmpty);
+    });
+  });
 }
 
 /// A minimal frozen-contract tool that records its lifecycle calls — proves

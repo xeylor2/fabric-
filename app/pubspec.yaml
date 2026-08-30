@@ -62,6 +62,24 @@ dependencies:
     path: ../packages/core_tooling
   core_rendering:
     path: ../packages/core_rendering
+  core_render:
+    path: ../packages/core_render
+  # The runtime composition chain (M6–M11) the composition root wires the
+  # canvas surface into: CompositeCanvasRuntime owns interaction, selection,
+  # transform, layer and tool runtimes and implements the frozen
+  # CanvasRuntimeContract.
+  core_canvas:
+    path: ../packages/core_canvas
+  core_canvas_runtime:
+    path: ../packages/core_canvas_runtime
+  core_runtime:
+    path: ../packages/core_runtime
+  core_selection_runtime:
+    path: ../packages/core_selection_runtime
+  core_tool_runtime:
+    path: ../packages/core_tool_runtime
+  core_transform_runtime:
+    path: ../packages/core_transform_runtime
   core_textile:
     path: ../packages/core_textile
   core_workspace:

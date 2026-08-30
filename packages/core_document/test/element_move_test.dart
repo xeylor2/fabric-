@@ -84,7 +84,11 @@ DesignNode _twoZoneTree() {
         name: 'Zone B',
         type: DesignNodeType.zone,
         children: [
-          DesignNode(id: 'e-4', name: 'Hem Motif', type: DesignNodeType.element),
+          DesignNode(
+            id: 'e-4',
+            name: 'Hem Motif',
+            type: DesignNodeType.element,
+          ),
         ],
       ),
     ],
@@ -116,10 +120,7 @@ void main() {
         'list and parent untouched', () {
       final e = _moveEngine();
       final before = _childIds(e, 'z-a');
-      const moved = Transform2D(
-        translation: Point2D(x: 99, y: 1),
-        scale: 3,
-      );
+      const moved = Transform2D(translation: Point2D(x: 99, y: 1), scale: 3);
 
       expect(
         e.apply(
@@ -137,7 +138,8 @@ void main() {
       expect(
         _childIds(e, 'z-a'),
         before,
-        reason: 'positioning is not a structural change (M18-D4 semantic '
+        reason:
+            'positioning is not a structural change (M18-D4 semantic '
             'discrimination)',
       );
       expect(_childIds(e, 'z-b'), ['e-4']);
@@ -147,10 +149,7 @@ void main() {
         'yield identical document state', () {
       final a = _moveEngine();
       final b = _moveEngine();
-      const t = Transform2D(
-        translation: Point2D(x: 7, y: 8),
-        rotation: 1.5,
-      );
+      const t = Transform2D(translation: Point2D(x: 7, y: 8), rotation: 1.5);
       final cmd = DocumentCommand.setNodeMetadata(
         artboardId: 'ab-1',
         nodeId: 'e-2',
@@ -188,7 +187,8 @@ void main() {
       expect(
         _transformOf(e, 'e-3'),
         isNull,
-        reason: 'a structural reorder writes no transform — absence stays '
+        reason:
+            'a structural reorder writes no transform — absence stays '
             'absence (M18-D4 semantic discrimination)',
       );
     });
@@ -343,7 +343,8 @@ void main() {
       expect(
         _root(e),
         locked,
-        reason: 'lock enforcement is observed as an outcome only — no claim '
+        reason:
+            'lock enforcement is observed as an outcome only — no claim '
             'is made here about where the check is placed',
       );
     });
@@ -392,7 +393,8 @@ void main() {
       expect(
         _root(e),
         original,
-        reason: 'neither the source nor the destination parent may be '
+        reason:
+            'neither the source nor the destination parent may be '
             'partially mutated by a rejected structural command',
       );
     });
@@ -465,7 +467,8 @@ void main() {
       expect(
         e.canRedo,
         isTrue,
-        reason: 'a rejected submission is not a new history entry and must '
+        reason:
+            'a rejected submission is not a new history entry and must '
             'not truncate the redo path',
       );
       expect(e.redo(), isA<CommandApplied>());
@@ -497,7 +500,8 @@ void main() {
       expect(
         _root(e),
         locked,
-        reason: 'the destination subtree lock is enforced as an outcome; no '
+        reason:
+            'the destination subtree lock is enforced as an outcome; no '
             'claim is made here about where the check is placed',
       );
     });
@@ -545,7 +549,8 @@ void main() {
       expect(
         _root(e),
         afterPositioning,
-        reason: 'undoing the structural move restores membership without '
+        reason:
+            'undoing the structural move restores membership without '
             'disturbing the positioning write',
       );
 

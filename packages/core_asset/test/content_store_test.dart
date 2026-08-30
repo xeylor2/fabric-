@@ -19,7 +19,10 @@ void main() {
 
     test('is deterministic and content-sensitive', () {
       const hasher = Sha256ContentHasher();
-      expect(hasher.hashOf(bytesOf('febric')), hasher.hashOf(bytesOf('febric')));
+      expect(
+        hasher.hashOf(bytesOf('febric')),
+        hasher.hashOf(bytesOf('febric')),
+      );
       expect(
         hasher.hashOf(bytesOf('febric')),
         isNot(hasher.hashOf(bytesOf('fabric'))),
@@ -109,7 +112,11 @@ void main() {
       final v2 = await store.put(bytesOf('v2-pixels'));
       e.addVersion('a-1', hash: v2, operation: 'colour_shift');
 
-      expect(await store.hashes()..sort(), containsAll([v1, v2]));
+      expect(
+        await store.hashes()
+          ..sort(),
+        containsAll([v1, v2]),
+      );
       expect(
         e.catalogue.byHash(v1)!.id,
         'a-1',

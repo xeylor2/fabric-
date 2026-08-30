@@ -50,8 +50,7 @@ final class InMemoryAssetRepository implements AssetRepository {
   }
 
   @override
-  Future<bool> exists(String projectId) async =>
-      _store.containsKey(projectId);
+  Future<bool> exists(String projectId) async => _store.containsKey(projectId);
 
   @override
   Future<void> delete(String projectId) async {

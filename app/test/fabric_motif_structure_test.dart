@@ -46,37 +46,44 @@ void main() {
   }
 
   group('fabric / base and printed motif exist in every printable field', () {
-    test('each field zone carries a fabric then a printed motif, in z-order', () {
-      final session = sessionWithGarments();
-      addTearDown(session.dispose);
-      for (final path in fieldPaths) {
-        final zone = at(session.engine, path);
-        expect(zone.type, DesignNodeType.zone, reason: path);
-        // Child order IS z-order: substrate first, printed motif above it.
-        expect(objectTypesIn(zone), [
-          TextileObjectType.fabric.wireName,
-          TextileObjectType.motif.wireName,
-        ], reason: path);
-        expect(
-          zone.children.every((c) => c.type == DesignNodeType.element),
-          isTrue,
-          reason: path,
-        );
-      }
-    });
+    test(
+      'each field zone carries a fabric then a printed motif, in z-order',
+      () {
+        final session = sessionWithGarments();
+        addTearDown(session.dispose);
+        for (final path in fieldPaths) {
+          final zone = at(session.engine, path);
+          expect(zone.type, DesignNodeType.zone, reason: path);
+          // Child order IS z-order: substrate first, printed motif above it.
+          expect(objectTypesIn(zone), [
+            TextileObjectType.fabric.wireName,
+            TextileObjectType.motif.wireName,
+          ], reason: path);
+          expect(
+            zone.children.every((c) => c.type == DesignNodeType.element),
+            isTrue,
+            reason: path,
+          );
+        }
+      },
+    );
     test('the classification carrier is the frozen object_type key only', () {
       final session = sessionWithGarments();
       addTearDown(session.dispose);
-      final content = treeRoot(session.engine).descendantsAndSelf.where(
-        (n) => n.metadata.containsKey('object_type'),
-      );
+      final content = treeRoot(
+        session.engine,
+      ).descendantsAndSelf.where((n) => n.metadata.containsKey('object_type'));
       expect(content, isNotEmpty);
       final frozen = TextileObjectType.values.map((t) => t.wireName).toSet();
       for (final node in content) {
         // Only frozen TextileObjectType wire names are ever written.
         expect(frozen, contains(node.metadata['object_type']));
         // The carrier is the sole classification key: no invented alternative.
-        expect(node.metadata.keys, ['object_type']);
+        // (Deterministic geometry rides the separate frozen `render_bounds`
+        // key, which classifies nothing.)
+        expect(node.metadata.keys.where((k) => k != 'render_bounds'), [
+          'object_type',
+        ]);
       }
     });
 
@@ -85,16 +92,23 @@ void main() {
       addTearDown(session.dispose);
       // A running band accepts neither substrate nor motif.
       expect(objectTypesIn(at(session.engine, '*.kurta.hem.band')), isEmpty);
-      expect(objectTypesIn(at(session.engine, '*.kurta.texture.surface')), isEmpty);
-      expect(objectTypesIn(at(session.engine, '*.dupatta.top_pallu.band')), isEmpty);
+      expect(
+        objectTypesIn(at(session.engine, '*.kurta.texture.surface')),
+        isEmpty,
+      );
+      expect(
+        objectTypesIn(at(session.engine, '*.dupatta.top_pallu.band')),
+        isEmpty,
+      );
       // A motif placement carries a printed motif and no substrate.
-      expect(objectTypesIn(at(session.engine, '*.kurta.hero_motif.placement')), [
+      expect(
+        objectTypesIn(at(session.engine, '*.kurta.hero_motif.placement')),
+        [TextileObjectType.motif.wireName],
+      );
+      expect(objectTypesIn(at(session.engine, '*.pant.leg[left].field')), [
+        TextileObjectType.fabric.wireName,
         TextileObjectType.motif.wireName,
       ]);
-      expect(
-        objectTypesIn(at(session.engine, '*.pant.leg[left].field')),
-        [TextileObjectType.fabric.wireName, TextileObjectType.motif.wireName],
-      );
     });
 
     test('the motif is never flattened into the fabric or the garment', () {
@@ -139,7 +153,10 @@ void main() {
           .map((c) => c.id)
           .toList();
       expect(motifIds.toSet(), hasLength(3));
-      expect(session.renameNode(motifIds[1], 'Second Motif'), isA<CommandApplied>());
+      expect(
+        session.renameNode(motifIds[1], 'Second Motif'),
+        isA<CommandApplied>(),
+      );
       expect(session.deleteNode(motifIds[0]), isA<CommandApplied>());
 
       zone = at(session.engine, '*.kurta.base.field');
@@ -150,62 +167,77 @@ void main() {
       ]);
     });
 
-    test('a motif layer participates in the existing structural operations', () {
-      final session = sessionWithGarments();
-      addTearDown(session.dispose);
-      final zone = at(session.engine, '*.pant.leg[left].field');
-      final motifId = zone.children.last.id;
+    test(
+      'a motif layer participates in the existing structural operations',
+      () {
+        final session = sessionWithGarments();
+        addTearDown(session.dispose);
+        final zone = at(session.engine, '*.pant.leg[left].field');
+        final motifId = zone.children.last.id;
 
-      // Reorder below the substrate, duplicate, lock, metadata, then delete.
-      expect(session.moveNode(motifId, zone.id, 0), isA<CommandApplied>());
-      expect(
-        at(session.engine, '*.pant.leg[left].field').children.first.id,
-        motifId,
-      );
-      expect(session.duplicateNode(motifId), isA<CommandApplied>());
-      expect(at(session.engine, '*.pant.leg[left].field').children, hasLength(3));
-      expect(session.setNodeMetadata(motifId, 'role', 'hero-motif'), isA<CommandApplied>());
-      expect(session.setNodeLocked(motifId, true), isA<CommandApplied>());
-      expect(session.renameNode(motifId, 'x'), isA<CommandRejected>());
-    });
+        // Reorder below the substrate, duplicate, lock, metadata, then delete.
+        expect(session.moveNode(motifId, zone.id, 0), isA<CommandApplied>());
+        expect(
+          at(session.engine, '*.pant.leg[left].field').children.first.id,
+          motifId,
+        );
+        expect(session.duplicateNode(motifId), isA<CommandApplied>());
+        expect(
+          at(session.engine, '*.pant.leg[left].field').children,
+          hasLength(3),
+        );
+        expect(
+          session.setNodeMetadata(motifId, 'role', 'hero-motif'),
+          isA<CommandApplied>(),
+        );
+        expect(session.setNodeLocked(motifId, true), isA<CommandApplied>());
+        expect(session.renameNode(motifId, 'x'), isA<CommandRejected>());
+      },
+    );
 
     test('extra fabric can be added where a slot accepts it', () {
       final session = sessionWithGarments();
       addTearDown(session.dispose);
       final zoneId = at(session.engine, '*.dupatta.middle_field.field').id;
       expect(session.createFabric(zoneId), isA<CommandApplied>());
-      expect(objectTypesIn(at(session.engine, '*.dupatta.middle_field.field')), [
-        TextileObjectType.fabric.wireName,
-        TextileObjectType.motif.wireName,
-        TextileObjectType.fabric.wireName,
-      ]);
+      expect(
+        objectTypesIn(at(session.engine, '*.dupatta.middle_field.field')),
+        [
+          TextileObjectType.fabric.wireName,
+          TextileObjectType.motif.wireName,
+          TextileObjectType.fabric.wireName,
+        ],
+      );
     });
     // PLACEHOLDER-FM2
   });
 
   group('frozen guarantees — no binding, no parallel path', () {
-    test('content nodes hold no layer-referencing key and the layer tree is inert', () {
-      final session = DesignTreeSession.inMemory();
-      addTearDown(session.dispose);
-      final layersBefore = session.engine.document.artboards.first.layerRoot;
-      for (final type in launchGarmentTypes) {
-        session.instantiateGarment(type.wireName);
-      }
-      final zoneId = at(session.engine, '*.kurta.base.field').id;
-      session.createMotif(zoneId);
-      session.createFabric(zoneId);
+    test(
+      'content nodes hold no layer-referencing key and the layer tree is inert',
+      () {
+        final session = DesignTreeSession.inMemory();
+        addTearDown(session.dispose);
+        final layersBefore = session.engine.document.artboards.first.layerRoot;
+        for (final type in launchGarmentTypes) {
+          session.instantiateGarment(type.wireName);
+        }
+        final zoneId = at(session.engine, '*.kurta.base.field').id;
+        session.createMotif(zoneId);
+        session.createFabric(zoneId);
 
-      // The whole content population leaves the compositing tree identical.
-      expect(session.engine.document.artboards.first.layerRoot, layersBefore);
-      // And no content node references a layer in any way.
-      for (final node in treeRoot(session.engine).descendantsAndSelf) {
-        expect(
-          node.metadata.keys.where((k) => k.contains('layer')),
-          isEmpty,
-          reason: node.id,
-        );
-      }
-    });
+        // The whole content population leaves the compositing tree identical.
+        expect(session.engine.document.artboards.first.layerRoot, layersBefore);
+        // And no content node references a layer in any way.
+        for (final node in treeRoot(session.engine).descendantsAndSelf) {
+          expect(
+            node.metadata.keys.where((k) => k.contains('layer')),
+            isEmpty,
+            reason: node.id,
+          );
+        }
+      },
+    );
 
     test('a garment plus its textile content lands as one undoable step', () {
       final session = DesignTreeSession.inMemory();
@@ -269,7 +301,10 @@ void main() {
         session.createMotif('node-chest'),
       ]) {
         expect(result, isA<CommandRejected>());
-        expect((result as CommandRejected).reason, CommandRejectionReason.locked);
+        expect(
+          (result as CommandRejected).reason,
+          CommandRejectionReason.locked,
+        );
       }
       expect(locked.document, same(before));
       expect(locked.document.history.entries, isEmpty);
@@ -289,54 +324,59 @@ void main() {
   });
 
   group('end-to-end — fabric and motif layers are user-invocable', () {
-    testWidgets('a Kurta arrives with fabric + motif; more motifs can be added', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(1600, 9000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      'a Kurta arrives with fabric + motif; more motifs can be added',
+      (tester) async {
+        tester.view.physicalSize = const Size(1600, 9000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      final session = DesignTreeSession.inMemory();
-      addTearDown(session.dispose);
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [designTreeSessionProvider.overrideWithValue(session)],
-          child: const MaterialApp(home: Scaffold(body: DesignTreePanel())),
-        ),
-      );
+        final session = DesignTreeSession.inMemory();
+        addTearDown(session.dispose);
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [designTreeSessionProvider.overrideWithValue(session)],
+            child: const MaterialApp(home: Scaffold(body: DesignTreePanel())),
+          ),
+        );
 
-      await tester.tap(find.byKey(const Key('garment-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('garment-add-kurta')));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('garment-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('garment-add-kurta')));
+        await tester.pumpAndSettle();
 
-      // The structure is on screen as real, named rows.
-      expect(find.text('Fabric / Base'), findsWidgets);
-      expect(find.text('Printed Motif'), findsWidgets);
+        // The structure is on screen as real, named rows.
+        expect(find.text('Fabric / Base'), findsWidgets);
+        expect(find.text('Printed Motif'), findsWidgets);
 
-      final zoneId = at(session.engine, '*.kurta.base.field').id;
-      final menu = find.byKey(Key('node-menu-$zoneId'));
-      await tester.ensureVisible(menu);
-      await tester.pumpAndSettle();
-      await tester.tap(menu);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(Key('node-add-motif-$zoneId')));
-      await tester.pumpAndSettle();
+        final zoneId = at(session.engine, '*.kurta.base.field').id;
+        final menu = find.byKey(Key('node-menu-$zoneId'));
+        await tester.ensureVisible(menu);
+        await tester.pumpAndSettle();
+        await tester.tap(menu);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(Key('node-add-motif-$zoneId')));
+        await tester.pumpAndSettle();
 
-      expect(objectTypesIn(at(session.engine, '*.kurta.base.field')), [
-        TextileObjectType.fabric.wireName,
-        TextileObjectType.motif.wireName,
-        TextileObjectType.motif.wireName,
-      ], reason: session.lastResult);
+        expect(
+          objectTypesIn(at(session.engine, '*.kurta.base.field')),
+          [
+            TextileObjectType.fabric.wireName,
+            TextileObjectType.motif.wireName,
+            TextileObjectType.motif.wireName,
+          ],
+          reason: session.lastResult,
+        );
 
-      // Undo is the engine's own mechanism, driven from the surface.
-      await tester.tap(find.byKey(const Key('design-tree-undo')));
-      await tester.pumpAndSettle();
-      expect(
-        objectTypesIn(at(session.engine, '*.kurta.base.field')),
-        hasLength(2),
-      );
-    });
+        // Undo is the engine's own mechanism, driven from the surface.
+        await tester.tap(find.byKey(const Key('design-tree-undo')));
+        await tester.pumpAndSettle();
+        expect(
+          objectTypesIn(at(session.engine, '*.kurta.base.field')),
+          hasLength(2),
+        );
+      },
+    );
   });
 }

@@ -255,9 +255,7 @@ void main() {
         'locked target reports locked, not the would-be invalid reason', () {
       final e = engine();
       registerMotif(e, id: 'a-1');
-      e.syncLocks(
-        const LockSet(locks: [LockState(scope: LockScope.project)]),
-      );
+      e.syncLocks(const LockSet(locks: [LockState(scope: LockScope.project)]));
       // Identical content would be `invalid` if validation ran first.
       expect(
         (e.addVersion('a-1', hash: 'sha256:m1') as AssetRejected).reason,
@@ -267,28 +265,28 @@ void main() {
       // `duplicateIdentity` — the lock wins over both.
       expect(
         (e.register(
-              name: '  ',
-              type: AssetType.palette,
-              origin: AssetOrigin.created,
-              mimeType: 'application/json',
-              hash: 'sha256:p1',
-            )
-            as AssetRejected)
+                  name: '  ',
+                  type: AssetType.palette,
+                  origin: AssetOrigin.created,
+                  mimeType: 'application/json',
+                  hash: 'sha256:p1',
+                )
+                as AssetRejected)
             .reason,
         AssetRejectionReason.locked,
       );
       expect(
         (e.register(
-              id: 'a-1',
-              name: 'Dup',
-              type: AssetType.motif,
-              origin: AssetOrigin.imported,
-              mimeType: 'image/png',
-              hash: 'sha256:x',
-              width: 8,
-              height: 8,
-            )
-            as AssetRejected)
+                  id: 'a-1',
+                  name: 'Dup',
+                  type: AssetType.motif,
+                  origin: AssetOrigin.imported,
+                  mimeType: 'image/png',
+                  hash: 'sha256:x',
+                  width: 8,
+                  height: 8,
+                )
+                as AssetRejected)
             .reason,
         AssetRejectionReason.locked,
       );
@@ -322,9 +320,7 @@ void main() {
     test('releasing locks restores mutation', () {
       final e = engine();
       registerMotif(e, id: 'a-1');
-      e.syncLocks(
-        const LockSet(locks: [LockState(scope: LockScope.project)]),
-      );
+      e.syncLocks(const LockSet(locks: [LockState(scope: LockScope.project)]));
       expect(e.amend('a-1', name: 'X'), isA<AssetRejected>());
       e.syncLocks(const LockSet());
       expect(e.amend('a-1', name: 'X'), isA<AssetApplied>());

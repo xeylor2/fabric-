@@ -1,4 +1,6 @@
+import 'package:core_design_system/core_design_system.dart';
 import 'package:febric/navigation/app_destinations.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_app.dart';
@@ -12,7 +14,6 @@ void main() {
       '/dashboard': 'Coming in M10',
       '/projects': 'Coming in M11',
       '/library': 'Coming in M3',
-      '/canvas': 'Coming in M4',
       '/conversation': 'Coming in M9',
       '/inspector': 'Coming in M7',
       '/production': 'Coming in M12',
@@ -33,6 +34,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Session'), findsOneWidget, reason: 'design tree root');
     expect(find.text('Motif A'), findsOneWidget, reason: 'design tree leaf');
+
+    // Canvas is live since M5/M5A: a real painted surface driving the frozen
+    // render pipeline, not a placeholder.
+    router.go('/canvas');
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('canvas-surface')),
+      findsOneWidget,
+      reason: 'the canvas paints the document',
+    );
+    expect(find.byType(ModulePlaceholderView), findsNothing);
 
     router.go('/settings');
     await tester.pumpAndSettle();
